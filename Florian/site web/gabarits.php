@@ -487,11 +487,11 @@ $canViewUsers = hasAnyRole('admin');
         <label>Choisir un afficheur</label>
         <select id="assignDisplay" required>
           <option value="">-- Sélectionner --</option>
-          <option value="Hall administration">Hall administration</option>
-          <option value="Vie scolaire C.S.E">Vie scolaire C.S.E</option>
-          <option value="Ateliers W">Ateliers W</option>
-          <option value="Physique S">Physique S</option>
-          <option value="Réfectoire">Réfectoire</option>
+          <option value="hall_admin">Hall administration</option>
+          <option value="vie_scolaire_cse">Vie scolaire C.S.E</option>
+          <option value="ateliers_w">Ateliers W</option>
+          <option value="physique_s">Physique S</option>
+          <option value="refectoire">Réfectoire</option>
         </select>
       </div>
       <button type="submit" class="save-btn">Valider l'affectation</button>
@@ -799,12 +799,41 @@ document.getElementById('editForm').addEventListener('submit', function(e) {
   document.getElementById('editModal').classList.remove('active');
 });
 
-document.getElementById('assignForm').addEventListener('submit', function(e) {
+document.getElementById('assignForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   if (!cardBeingAssigned) return;
-  cardBeingAssigned.dataset.assigned = document.getElementById('assignDisplay').value;
-  updateCardVisual(cardBeingAssigned);
-  document.getElementById('assignModal').classList.remove('active');
+
+  const select = document.getElementById('assignDisplay');
+  const screenCode = select.value;
+  const screenName = select.options[select.selectedIndex].text;
+  const templateTitle = cardBeingAssigned.dataset.title;
+
+  try {
+    const res = await fetch('save_assignment.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        screen_code: screenCode,
+        screen_name: screenName,
+        template_title: templateTitle
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Erreur : " + (data.error || "Affectation impossible"));
+      return;
+    }
+
+    cardBeingAssigned.dataset.assigned = screenName;
+    updateCardVisual(cardBeingAssigned);
+    document.getElementById('assignModal').classList.remove('active');
+    alert('Gabarit affecté à ' + screenName);
+
+  } catch (err) {
+    alert("Erreur réseau : " + err.message);
+  }
 });
 
 // Fermeture modals
