@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestion des gabarits</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      background: #0b1220;
+      color: #fff;
+      min-height: 100vh;
+      padding: 30px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      color: #b8c4d9;
+    }
+
+    .btn-add {
+      background: #00d084;
+      color: #001b12;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #101a2d;
+      border: 1px solid #24324f;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+    }
+
+    .preview {
+      padding: 14px;
+      background: #0d1627;
+      border-bottom: 1px solid #24324f;
+    }
+
+    .mini-screen {
+      background: #efefef;
+      border: 2px solid #222;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.25);
+      padding: 6px;
+    }
+
+    .mini-topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.55rem;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 8px;
+    }
+
+    .mini-layout {
+      display: grid;
+      grid-template-columns: 90px 1fr 65px;
+      gap: 6px;
+      min-height: 120px;
+      align-items: stretch;
+    }
+
+    .mini-panel {
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6px;
+      font-size: 0.6rem;
+      font-style: italic;
+      font-weight: bold;
+    }
+
+    .mini-zone1 {
+      background: #0818ff;
+      color: white;
+      min-height: 60px;
+      align-self: start;
+    }
+
+    .mini-zone2 {
+      background: transparent;
+      color: #111;
+    }
+
+    .mini-zone3 {
+      background: #2cff20;
+      color: #000;
+      font-style: normal;
+      line-height: 1.05;
+      min-height: 95px;
+    }
+
+    .mini-footer {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: 90px 1fr 65px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .mini-location {
+      background: #dcdcdc;
+      color: #000;
+      padding: 5px 6px;
+      font-size: 0.55rem;
+      border-radius: 4px;
+    }
+
+    .mini-alert {
+      background: #ff1e1e;
+      color: #000;
+      font-size: 0.55rem;
+      font-weight: 700;
+      padding: 5px 6px;
+      border-radius: 4px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .mini-status {
+      background: #ff1e1e;
+      min-height: 24px;
+      border-radius: 4px;
+    }
+
+    .card-content {
+      padding: 16px;
+    }
+
+    .card-content h2 {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+
+    .card-content p {
+      color: #b8c4d9;
+      margin-bottom: 6px;
+    }
+
+    .status-active {
+      color: #00d084;
+      font-weight: bold;
+    }
+
+    .status-offline {
+      color: #ffb347;
+      font-weight: bold;
+    }
+
+    .assigned-display {
+      color: #9fd0ff;
+      font-weight: bold;
+    }
+
+    .actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-edit {
+      background: #00d084;
+      color: #001b12;
+    }
+
+    .btn-preview {
+      background: transparent;
+      color: #cbd5e1;
+      border: 1px solid #3b4d72;
+    }
+
+    .btn-assign {
+      background: #4da6ff;
+      color: white;
+    }
+
+    .btn-delete {
+      background: #ff4d4d;
+      color: white;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 999;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 1250px;
+      max-height: 95vh;
+      overflow: auto;
+      background: #1a2233;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .modal-top h2 {
+      font-size: 1.4rem;
+    }
+
+    .close-btn {
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .screen {
+      width: 100%;
+      background: #efefef;
+      border: 3px solid #222;
+      box-shadow: 10px 10px 0 rgba(0,0,0,0.35);
+      padding: 10px;
+      color: #111;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 14px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr 180px;
+      gap: 18px;
+      min-height: 420px;
+      align-items: stretch;
+    }
+
+    .panel {
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+      font-size: 1.3rem;
+      font-style: italic;
+      font-weight: bold;
+    }
+
+    .zone1 {
+      background: #0818ff;
+      color: #fff;
+      min-height: 170px;
+      align-self: start;
+    }
+
+    .zone2 {
+      background: transparent;
+      color: #111;
+      font-size: 1.5rem;
+    }
+
+    .zone3 {
+      background: #2cff20;
+      color: #000;
+      min-height: 300px;
+      font-style: normal;
+      line-height: 1.15;
+    }
+
+    .footer {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 260px 1fr 180px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .location {
+      background: #dcdcdc;
+      color: #000;
+      padding: 10px 14px;
+      font-size: 1.1rem;
+      border-radius: 4px;
+    }
+
+    .alert {
+      background: #ff1e1e;
+      color: #000;
+      font-size: 1.05rem;
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 4px;
+      text-align: center;
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+    }
+
+    .alert span {
+      display: inline-block;
+      padding-left: 100%;
+      animation: defilement 14s linear infinite;
+    }
+
+    .status {
+      background: #ff1e1e;
+      height: 100%;
+      min-height: 42px;
+      border-radius: 4px;
+    }
+
+    .edit-form {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .edit-form label {
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .edit-form input,
+    .edit-form textarea,
+    .edit-form select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #3b4d72;
+      background: #0f1728;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .edit-form textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .save-btn {
+      background: #00d084;
+      color: #001b12;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    @keyframes defilement {
+      from { transform: translateX(0); }
+      to { transform: translateX(-100%); }
+    }
+
+    @media (max-width: 900px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .screen {
+        width: 100%;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+        font-size: 1.2rem;
+      }
+
+      .layout,
+      .footer {
+        grid-template-columns: 1fr;
+      }
+
+      .zone1,
+      .zone3 {
+        min-height: 140px;
+      }
+
+      .mini-layout {
+        grid-template-columns: 70px 1fr 50px;
+      }
+
+      .mini-footer {
+        grid-template-columns: 70px 1fr 50px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>Gestion des gabarits d'affichage</h1>
+      <p>Choisissez et gérez les gabarits utilisés par les afficheurs</p>
+    </div>
+    <button class="btn-add" id="addTemplateBtn">+ Nouveau gabarit</button>
+  </div>
+
+  <div class="cards" id="cardsContainer">
+
+    <div class="card"
+      data-title="Gabarit Administration"
+      data-site="LGT Joseph GAILLARD"
+      data-zone1="Infos admin"
+      data-zone2="Annonces générales"
+      data-zone3="Énergie"
+      data-location="Administration"
+      data-alert="Urgences / Rappels"
+      data-status="Actif"
+      data-assigned="">
+      <div class="preview">
+        <div class="mini-screen">
+          <div class="mini-topbar">
+            <div>LGT Joseph GAILLARD</div>
+            <div class="mini-date">Lundi 07h30</div>
+          </div>
+
+          <div class="mini-layout">
+            <div class="mini-panel mini-zone1">Infos admin</div>
+            <div class="mini-panel mini-zone2">Annonces générales</div>
+            <div class="mini-panel mini-zone3">Énergie</div>
+          </div>
+
+          <div class="mini-footer">
+            <div class="mini-location">Administration</div>
+            <div class="mini-alert">Urgences / Rappels</div>
+            <div class="mini-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-content">
+        <h2>Gabarit Administration</h2>
+        <p>Bâtiment : Administration</p>
+        <p class="status-active">● Actif</p>
+        <p class="assigned-display">Afficheur : Non affecté</p>
+        <div class="actions">
+          <button class="btn btn-edit">Modifier</button>
+          <button class="btn btn-preview">Prévisualiser</button>
+          <button class="btn btn-assign">Affecter</button>
+          <button class="btn btn-delete">Supprimer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card"
+      data-title="Gabarit Vie scolaire"
+      data-site="LGT Joseph GAILLARD"
+      data-zone1="Vie scolaire"
+      data-zone2="Actualités élèves"
+      data-zone3="Météo"
+      data-location="Bâtiment C"
+      data-alert="Retards / Rappels"
+      data-status="Actif"
+      data-assigned="">
+      <div class="preview">
+        <div class="mini-screen">
+          <div class="mini-topbar">
+            <div>LGT Joseph GAILLARD</div>
+            <div class="mini-date">Lundi 07h30</div>
+          </div>
+
+          <div class="mini-layout">
+            <div class="mini-panel mini-zone1">Vie scolaire</div>
+            <div class="mini-panel mini-zone2">Actualités élèves</div>
+            <div class="mini-panel mini-zone3">Météo</div>
+          </div>
+
+          <div class="mini-footer">
+            <div class="mini-location">Bâtiment C</div>
+            <div class="mini-alert">Retards / Rappels</div>
+            <div class="mini-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-content">
+        <h2>Gabarit Vie scolaire</h2>
+        <p>Bâtiment : Bâtiment C</p>
+        <p class="status-active">● Actif</p>
+        <p class="assigned-display">Afficheur : Non affecté</p>
+        <div class="actions">
+          <button class="btn btn-edit">Modifier</button>
+          <button class="btn btn-preview">Prévisualiser</button>
+          <button class="btn btn-assign">Affecter</button>
+          <button class="btn btn-delete">Supprimer</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="modal" id="templateModal">
+    <div class="modal-box">
+      <div class="modal-top">
+        <h2 id="modalTitle">Prévisualisation du gabarit</h2>
+        <button class="close-btn" id="closeModal">Fermer</button>
+      </div>
+
+      <div class="screen">
+        <div class="topbar">
+          <div id="siteName">LGT Joseph GAILLARD</div>
+          <div id="dateHeure">Nous sommes le Lundi 13 Novembre 2023. Il est 07h30</div>
+        </div>
+
+        <div class="layout">
+          <div class="panel zone1" id="zone1">Zone d'information 1</div>
+          <div class="panel zone2" id="zone2">Zone d'information 2</div>
+          <div class="panel zone3" id="zone3">Zone d'information 3</div>
+        </div>
+
+        <div class="footer">
+          <div class="location" id="location">Bâtiment W. ateliers</div>
+          <div class="alert"><span id="alerteText">Urgences, rappels</span></div>
+          <div class="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="editModal">
+    <div class="modal-box" style="max-width: 700px;">
+      <div class="modal-top">
+        <h2>Modifier le gabarit</h2>
+        <button class="close-btn" id="closeEditModal">Fermer</button>
+      </div>
+
+      <form class="edit-form" id="editForm">
+        <div>
+          <label for="editTitle">Nom du gabarit</label>
+          <input type="text" id="editTitle" required>
+        </div>
+
+        <div>
+          <label for="editSite">Nom de l'établissement</label>
+          <input type="text" id="editSite" required>
+        </div>
+
+        <div>
+          <label for="editZone1">Zone 1</label>
+          <textarea id="editZone1" required></textarea>
+        </div>
+
+        <div>
+          <label for="editZone2">Zone 2</label>
+          <textarea id="editZone2" required></textarea>
+        </div>
+
+        <div>
+          <label for="editZone3">Zone 3</label>
+          <textarea id="editZone3" required></textarea>
+        </div>
+
+        <div>
+          <label for="editLocation">Bâtiment / emplacement</label>
+          <input type="text" id="editLocation" required>
+        </div>
+
+        <div>
+          <label for="editAlert">Texte de l'alerte rouge</label>
+          <input type="text" id="editAlert" required>
+        </div>
+
+        <div>
+          <label for="editStatus">Statut</label>
+          <select id="editStatus">
+            <option value="Actif">Actif</option>
+            <option value="Hors ligne">Hors ligne</option>
+          </select>
+        </div>
+
+        <button type="submit" class="save-btn">Enregistrer les modifications</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="assignModal">
+    <div class="modal-box" style="max-width: 600px;">
+      <div class="modal-top">
+        <h2>Affecter à un afficheur</h2>
+        <button class="close-btn" id="closeAssignModal">Fermer</button>
+      </div>
+
+      <form class="edit-form" id="assignForm">
+        <div>
+          <label for="assignDisplay">Choisir un afficheur</label>
+          <select id="assignDisplay" required>
+            <option value="">-- Sélectionner --</option>
+            <option value="Hall administration">Hall administration</option>
+            <option value="Vie scolaire">Vie scolaire</option>
+            <option value="Bâtiment C">Bâtiment C</option>
+            <option value="Ateliers W">Ateliers W</option>
+            <option value="Réfectoire">Réfectoire</option>
+          </select>
+        </div>
+
+        <button type="submit" class="save-btn">Valider l'affectation</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const cardsContainer = document.getElementById('cardsContainer');
+    const modal = document.getElementById('templateModal');
+    const closeModal = document.getElementById('closeModal');
+    const addTemplateBtn = document.getElementById('addTemplateBtn');
+
+    const editModal = document.getElementById('editModal');
+    const closeEditModal = document.getElementById('closeEditModal');
+    const editForm = document.getElementById('editForm');
+
+    const assignModal = document.getElementById('assignModal');
+    const closeAssignModal = document.getElementById('closeAssignModal');
+    const assignForm = document.getElementById('assignForm');
+    const assignDisplay = document.getElementById('assignDisplay');
+
+    const editTitle = document.getElementById('editTitle');
+    const editSite = document.getElementById('editSite');
+    const editZone1 = document.getElementById('editZone1');
+    const editZone2 = document.getElementById('editZone2');
+    const editZone3 = document.getElementById('editZone3');
+    const editLocation = document.getElementById('editLocation');
+    const editAlert = document.getElementById('editAlert');
+    const editStatus = document.getElementById('editStatus');
+
+    let currentCard = null;
+    let cardBeingEdited = null;
+    let cardBeingAssigned = null;
+
+    function mettreAJourDateHeure() {
+      const maintenant = new Date();
+      const jours = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+      const mois = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+      const jour = jours[maintenant.getDay()];
+      const date = maintenant.getDate();
+      const moisNom = mois[maintenant.getMonth()];
+      const annee = maintenant.getFullYear();
+      const heures = String(maintenant.getHours()).padStart(2, '0');
+      const minutes = String(maintenant.getMinutes()).padStart(2, '0');
+
+      const texteComplet = `Nous sommes le ${jour} ${date} ${moisNom} ${annee}. Il est ${heures}h${minutes}`;
+      const texteMini = `${jour} ${heures}h${minutes}`;
+
+      document.getElementById('dateHeure').textContent = texteComplet;
+
+      document.querySelectorAll('.mini-date').forEach(el => {
+        el.textContent = texteMini;
+      });
+    }
+
+    function openTemplate(card) {
+      currentCard = card;
+
+      document.getElementById('modalTitle').textContent = card.dataset.title;
+      document.getElementById('siteName').textContent = card.dataset.site;
+      document.getElementById('zone1').textContent = card.dataset.zone1;
+      document.getElementById('zone2').textContent = card.dataset.zone2;
+      document.getElementById('zone3').textContent = card.dataset.zone3;
+      document.getElementById('location').textContent = card.dataset.location;
+      document.getElementById('alerteText').textContent = card.dataset.alert;
+
+      modal.classList.add('active');
+      mettreAJourDateHeure();
+    }
+
+    function updateCardVisual(card) {
+      card.querySelector('.card-content h2').textContent = card.dataset.title;
+      card.querySelector('.card-content p:nth-of-type(1)').textContent = 'Bâtiment : ' + card.dataset.location;
+
+      const statusEl = card.querySelector('.card-content p:nth-of-type(2)');
+      if (card.dataset.status === 'Actif') {
+        statusEl.textContent = '● Actif';
+        statusEl.className = 'status-active';
+      } else {
+        statusEl.textContent = '⚠ Hors ligne';
+        statusEl.className = 'status-offline';
+      }
+
+      const assignedEl = card.querySelector('.assigned-display');
+      assignedEl.textContent = 'Afficheur : ' + (card.dataset.assigned || 'Non affecté');
+
+      card.querySelector('.mini-topbar div:first-child').textContent = card.dataset.site;
+      card.querySelector('.mini-zone1').textContent = card.dataset.zone1;
+      card.querySelector('.mini-zone2').textContent = card.dataset.zone2;
+      card.querySelector('.mini-zone3').textContent = card.dataset.zone3;
+      card.querySelector('.mini-location').textContent = card.dataset.location;
+      card.querySelector('.mini-alert').textContent = card.dataset.alert;
+    }
+
+    function openEditModal(card) {
+      cardBeingEdited = card;
+
+      editTitle.value = card.dataset.title;
+      editSite.value = card.dataset.site;
+      editZone1.value = card.dataset.zone1;
+      editZone2.value = card.dataset.zone2;
+      editZone3.value = card.dataset.zone3;
+      editLocation.value = card.dataset.location;
+      editAlert.value = card.dataset.alert;
+      editStatus.value = card.dataset.status;
+
+      editModal.classList.add('active');
+    }
+
+    function openAssignModal(card) {
+      cardBeingAssigned = card;
+      assignDisplay.value = card.dataset.assigned || "";
+      assignModal.classList.add('active');
+    }
+
+    function attachCardEvents(card) {
+      const previewBtn = card.querySelector('.btn-preview');
+      const editBtn = card.querySelector('.btn-edit');
+      const assignBtn = card.querySelector('.btn-assign');
+      const deleteBtn = card.querySelector('.btn-delete');
+
+      previewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openTemplate(card);
+      });
+
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditModal(card);
+      });
+
+      assignBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openAssignModal(card);
+      });
+
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        const confirmation = confirm(`Voulez-vous vraiment supprimer "${card.dataset.title}" ?`);
+        if (!confirmation) return;
+
+        if (currentCard === card) {
+          modal.classList.remove('active');
+          currentCard = null;
+        }
+
+        if (cardBeingEdited === card) {
+          editModal.classList.remove('active');
+          cardBeingEdited = null;
+        }
+
+        if (cardBeingAssigned === card) {
+          assignModal.classList.remove('active');
+          cardBeingAssigned = null;
+        }
+
+        card.remove();
+      });
+    }
+
+    function createNewCard() {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.title = 'Nouveau gabarit';
+      card.dataset.site = 'LGT Joseph GAILLARD';
+      card.dataset.zone1 = 'Nouvelle zone 1';
+      card.dataset.zone2 = 'Nouvelle zone 2';
+      card.dataset.zone3 = 'Nouvelle zone 3';
+      card.dataset.location = 'Nouveau bâtiment';
+      card.dataset.alert = 'Nouvelle alerte rouge';
+      card.dataset.status = 'Actif';
+      card.dataset.assigned = '';
+
+      card.innerHTML = `
+        <div class="preview">
+          <div class="mini-screen">
+            <div class="mini-topbar">
+              <div>LGT Joseph GAILLARD</div>
+              <div class="mini-date">Lundi 07h30</div>
+            </div>
+
+            <div class="mini-layout">
+              <div class="mini-panel mini-zone1">Nouvelle zone 1</div>
+              <div class="mini-panel mini-zone2">Nouvelle zone 2</div>
+              <div class="mini-panel mini-zone3">Nouvelle zone 3</div>
+            </div>
+
+            <div class="mini-footer">
+              <div class="mini-location">Nouveau bâtiment</div>
+              <div class="mini-alert">Nouvelle alerte rouge</div>
+              <div class="mini-status"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-content">
+          <h2>Nouveau gabarit</h2>
+          <p>Bâtiment : Nouveau bâtiment</p>
+          <p class="status-active">● Actif</p>
+          <p class="assigned-display">Afficheur : Non affecté</p>
+          <div class="actions">
+            <button class="btn btn-edit">Modifier</button>
+            <button class="btn btn-preview">Prévisualiser</button>
+            <button class="btn btn-assign">Affecter</button>
+            <button class="btn btn-delete">Supprimer</button>
+          </div>
+        </div>
+      `;
+
+      cardsContainer.appendChild(card);
+      attachCardEvents(card);
+      mettreAJourDateHeure();
+    }
+
+    editForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      if (!cardBeingEdited) return;
+
+      cardBeingEdited.dataset.title = editTitle.value;
+      cardBeingEdited.dataset.site = editSite.value;
+      cardBeingEdited.dataset.zone1 = editZone1.value;
+      cardBeingEdited.dataset.zone2 = editZone2.value;
+      cardBeingEdited.dataset.zone3 = editZone3.value;
+      cardBeingEdited.dataset.location = editLocation.value;
+      cardBeingEdited.dataset.alert = editAlert.value;
+      cardBeingEdited.dataset.status = editStatus.value;
+
+      updateCardVisual(cardBeingEdited);
+
+      if (currentCard === cardBeingEdited && modal.classList.contains('active')) {
+        openTemplate(cardBeingEdited);
+      }
+
+      editModal.classList.remove('active');
+    });
+
+    assignForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      if (!cardBeingAssigned) return;
+
+      cardBeingAssigned.dataset.assigned = assignDisplay.value;
+      updateCardVisual(cardBeingAssigned);
+
+      assignModal.classList.remove('active');
+    });
+
+    document.querySelectorAll('.card').forEach(card => {
+      attachCardEvents(card);
+    });
+
+    addTemplateBtn.addEventListener('click', createNewCard);
+
+    closeModal.addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
+
+    closeEditModal.addEventListener('click', () => {
+      editModal.classList.remove('active');
+    });
+
+    closeAssignModal.addEventListener('click', () => {
+      assignModal.classList.remove('active');
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('active');
+      }
+    });
+
+    editModal.addEventListener('click', (e) => {
+      if (e.target === editModal) {
+        editModal.classList.remove('active');
+      }
+    });
+
+    assignModal.addEventListener('click', (e) => {
+      if (e.target === assignModal) {
+        assignModal.classList.remove('active');
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        modal.classList.remove('active');
+        editModal.classList.remove('active');
+        assignModal.classList.remove('active');
+      }
+    });
+
+    mettreAJourDateHeure();
+    setInterval(mettreAJourDateHeure, 1000);
+  </script>
+</body>
+</html>

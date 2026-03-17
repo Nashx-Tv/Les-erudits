@@ -1,0 +1,736 @@
+<?php
+// =============================================
+//  gabarits.php — Gestion des gabarits (rôles)
+// =============================================
+require_once 'auth_check.php';
+requireLogin();
+
+$primaryRole  = getPrimaryRole();
+$roleLabel    = getRoleLabel($primaryRole);
+$roleColor    = getRoleColor($primaryRole);
+$userRoles    = $_SESSION['user_roles'] ?? ['user'];
+$userRolesJson = json_encode($userRoles);
+$userName     = htmlspecialchars($_SESSION['user_name'] ?? '');
+
+// Permissions calculées côté PHP (aussi répercutées en JS)
+$canAdd    = hasAnyRole('admin');
+$canEdit   = hasAnyRole('admin', 'moderator', 'vie_scolaire_lyceen', 'vie_scolaire_postbac', 'vie_scolaire');
+$canDelete = hasAnyRole('admin');
+$canAssign = hasAnyRole('admin', 'moderator');
+$canViewDB = hasAnyRole('admin');
+$canViewUsers = hasAnyRole('admin');
+$canEnterProd = hasAnyRole('admin', 'ateliers');
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfoProd – Gabarits</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:       #f0f2f7;
+      --sidebar:  #111827;
+      --card:     #ffffff;
+      --border:   #e2e8f0;
+      --accent:   #00d084;
+      --accent-dk:#00a86b;
+      --text:     #111827;
+      --sub:      #6b7280;
+      --muted:    #9ca3af;
+      --green-pill:#d1fae5;
+      --green-txt: #065f46;
+      --amber-pill:#fef3c7;
+      --amber-txt: #b45309;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: Arial, Helvetica, sans-serif; min-height: 100vh; display: flex; }
+
+    /* SIDEBAR */
+    aside { width: 220px; background: var(--sidebar); display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+    .brand { padding: 20px 18px 16px; border-bottom: 1px solid #1f2937; }
+    .brand-name { font-size: 20px; font-weight: 800; color: #fff; }
+    .brand-name span { color: var(--accent); }
+    .brand-sub { font-size: 10px; color: #4b5563; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+    nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
+    .nav-section { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #374151; padding: 12px 10px 5px; font-weight: 600; }
+    nav a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 7px; color: #9ca3af; text-decoration: none; font-size: 13px; font-weight: 500; transition: background 0.15s, color 0.15s; }
+    nav a:hover { background: #1f2937; color: #e5e7eb; }
+    nav a.active { background: rgba(0,208,132,0.15); color: var(--accent); }
+    nav a svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid #1f2937; font-size: 11px; color: #374151; line-height: 1.6; }
+    .role-chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; color: #fff; margin-top: 4px; }
+
+    /* CONTENT */
+    .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    header { background: #fff; border-bottom: 1px solid var(--border); padding: 0 26px; height: 58px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sub); }
+    .breadcrumb .current { color: var(--text); font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .btn-add { background: var(--accent); color: #001b12; border: none; padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+    .btn-add:hover { background: var(--accent-dk); }
+    .btn-logout { font-size: 12px; padding: 7px 14px; border-radius: 7px; border: 1px solid #e2e8f0; background: white; color: #6b7280; text-decoration: none; cursor: pointer; transition: all 0.15s; }
+    .btn-logout:hover { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+    /* PAGE BODY */
+    .page-body { flex: 1; padding: 26px; overflow-y: auto; }
+    .page-title-row { margin-bottom: 20px; }
+    .page-title-row h1 { font-size: 22px; font-weight: 700; }
+    .page-title-row p { font-size: 13px; color: var(--sub); margin-top: 4px; }
+
+    /* RÉSUMÉ DES ACTIONS (nouvelle section) */
+    .quick-actions {
+      background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 22px;
+      border: 1px solid #374151;
+    }
+    .quick-actions-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .qa-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .qa-item {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: background 0.15s;
+    }
+    .qa-item:hover { background: rgba(255,255,255,0.1); }
+    .qa-item.disabled { opacity: 0.35; cursor: not-allowed; }
+    .qa-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .qa-text strong { display: block; font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+    .qa-text span { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.4; }
+    .qa-badge {
+      display: inline-block;
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-weight: 700;
+      margin-top: 3px;
+    }
+    .qa-badge.ok   { background: rgba(0,208,132,0.2); color: #00d084; }
+    .qa-badge.lock { background: rgba(255,77,77,0.15); color: #ff6b6b; }
+
+    /* STATS */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 26px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+    .stat-label { font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .stat-value { font-size: 26px; font-weight: 800; line-height: 1; }
+    .stat-value.green  { color: #10b981; }
+    .stat-value.amber  { color: #f59e0b; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* SECTION HEADER */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .section-header h2 { font-size: 15px; font-weight: 700; }
+    .filter-bar { display: flex; gap: 8px; }
+    .filter-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--sub); transition: all 0.15s; }
+    .filter-btn.active, .filter-btn:hover { background: var(--accent); color: #001b12; border-color: var(--accent); }
+
+    /* INFO RÔLE - bandeau si accès restreint */
+    .role-info-banner {
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      color: #1e40af;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* CARDS */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 18px; }
+    .gabarit-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; }
+    .gabarit-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.12); }
+
+    /* MINI SCREEN */
+    .preview { padding: 14px; background: #0d1627; border-bottom: 1px solid #1a2c44; }
+    .mini-screen { background: #efefef; border: 2px solid #222; box-shadow: 4px 4px 0 rgba(0,0,0,0.25); padding: 6px; }
+    .mini-topbar { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; font-size: 0.55rem; font-weight: 600; color: #111; margin-bottom: 8px; }
+    .mini-layout { display: grid; grid-template-columns: 90px 1fr 65px; gap: 6px; min-height: 110px; align-items: stretch; }
+    .mini-panel { border-radius: 4px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; font-size: 0.6rem; font-style: italic; font-weight: bold; }
+    .mini-zone1 { background: #0818ff; color: white; min-height: 60px; align-self: start; }
+    .mini-zone2 { background: transparent; color: #111; }
+    .mini-zone3 { background: #2cff20; color: #000; font-style: normal; line-height: 1.05; min-height: 85px; }
+    .mini-footer { margin-top: 8px; display: grid; grid-template-columns: 90px 1fr 65px; gap: 6px; align-items: center; }
+    .mini-location { background: #dcdcdc; color: #000; padding: 4px 6px; font-size: 0.55rem; border-radius: 4px; }
+    .mini-alert { background: #ff1e1e; color: #000; font-size: 0.55rem; font-weight: 700; padding: 4px 6px; border-radius: 4px; text-align: center; white-space: nowrap; overflow: hidden; }
+    .mini-status { background: #ff1e1e; min-height: 22px; border-radius: 4px; }
+
+    /* CARD INFO */
+    .card-info { padding: 14px 16px 16px; }
+    .card-top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .card-name { font-size: 15px; font-weight: 700; }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-config  { background: var(--amber-pill); color: var(--amber-txt); }
+    .badge-actif   { background: var(--green-pill);  color: var(--green-txt); }
+    .badge-offline { background: #fee2e2; color: #991b1b; }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+    .card-location { font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+    .card-assigned { font-size: 12px; color: #3b82f6; font-weight: 600; margin-bottom: 12px; }
+    .card-divider  { height: 1px; background: var(--border); margin-bottom: 12px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn { padding: 8px 14px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 12px; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-edit    { background: var(--accent); color: #001b12; }
+    .btn-preview { background: transparent; color: #cbd5e1; border: 1px solid #3b4d72; }
+    .btn-assign  { background: #4da6ff; color: white; }
+    .btn-delete  { background: #ff4d4d; color: white; }
+
+    /* MODALS */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.82); display: none; justify-content: center; align-items: center; padding: 20px; z-index: 999; }
+    .modal.active { display: flex; }
+    .modal-box { width: 100%; max-width: 1200px; max-height: 95vh; overflow: auto; background: #1a2233; border-radius: 14px; padding: 18px; }
+    .modal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+    .modal-top h2 { font-size: 1.3rem; color: #fff; }
+    .close-btn { background: #ff4d4d; color: white; border: none; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+    /* FULL SCREEN */
+    .screen { width: 100%; background: #efefef; border: 3px solid #222; box-shadow: 10px 10px 0 rgba(0,0,0,0.35); padding: 10px; color: #111; }
+    .topbar { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; font-size: 1.4rem; font-weight: 600; color: #111; margin-bottom: 14px; }
+    .layout { display: grid; grid-template-columns: 260px 1fr 180px; gap: 18px; min-height: 380px; align-items: stretch; }
+    .panel { border-radius: 6px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; font-size: 1.2rem; font-style: italic; font-weight: bold; }
+    .zone1 { background: #0818ff; color: #fff; min-height: 160px; align-self: start; }
+    .zone2 { background: transparent; color: #111; font-size: 1.4rem; }
+    .zone3 { background: #2cff20; color: #000; min-height: 280px; font-style: normal; line-height: 1.15; }
+    .footer-screen { margin-top: 16px; display: grid; grid-template-columns: 260px 1fr 180px; gap: 10px; align-items: center; }
+    .location-box { background: #dcdcdc; color: #000; padding: 10px 14px; font-size: 1rem; border-radius: 4px; }
+    .alert-box { background: #ff1e1e; color: #000; font-size: 1rem; font-weight: 700; padding: 10px 16px; border-radius: 4px; text-align: center; overflow: hidden; white-space: nowrap; position: relative; }
+    .alert-box span { display: inline-block; padding-left: 100%; animation: defilement 14s linear infinite; }
+    .status-box { background: #ff1e1e; height: 100%; min-height: 40px; border-radius: 4px; }
+    @keyframes defilement { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+
+    /* EDIT FORM */
+    .edit-form { display: grid; gap: 12px; margin-bottom: 16px; }
+    .edit-form label { font-weight: bold; color: #fff; margin-bottom: 3px; display: block; font-size: 13px; }
+    .edit-form input, .edit-form textarea, .edit-form select { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #3b4d72; background: #0f1728; color: white; font-size: 0.95rem; }
+    .edit-form textarea { min-height: 70px; resize: vertical; }
+    .save-btn { background: var(--accent); color: #001b12; border: none; padding: 11px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
+
+    footer { background: #fff; border-top: 1px solid var(--border); text-align: center; padding: 11px; font-size: 11.5px; color: var(--muted); flex-shrink: 0; }
+
+    @media (max-width: 900px) {
+      .cards-grid { grid-template-columns: 1fr; }
+      .layout, .footer-screen { grid-template-columns: 1fr; }
+      .topbar { grid-template-columns: 1fr; font-size: 1rem; }
+      .zone1, .zone3 { min-height: 120px; }
+      .mini-layout, .mini-footer { grid-template-columns: 70px 1fr 50px; }
+      .stats-row { grid-template-columns: repeat(2,1fr); }
+      .qa-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside>
+  <div class="brand">
+    <div class="brand-name">Info<span>Prod</span></div>
+    <div class="brand-sub">LGT Joseph Gaillard</div>
+  </div>
+  <nav>
+    <div class="nav-section">Principal</div>
+    <a href="gabarits.php" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Gabarits
+    </a>
+    <a href="production.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Production
+    </a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+      Températures
+    </a>
+    <div class="nav-section">Affichage</div>
+    <?php if ($canViewDB): ?>
+    <a href="http://192.168.0.11/phpmyadmin/index.php?route=/database/structure&db=auth_system">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+      Base de données
+    </a>
+    <?php endif; ?>
+    <?php if ($canViewUsers): ?>
+    <a href="admin_users.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Utilisateurs
+    </a>
+    <?php endif; ?>
+  </nav>
+  <div class="sidebar-footer">
+    BTS CIEL IR · Session 2026<br>
+    <span style="color:#e5e7eb;font-weight:600"><?= $userName ?></span><br>
+    <span class="role-chip" style="background:<?= $roleColor ?>"><?= $roleLabel ?></span>
+  </div>
+</aside>
+
+<!-- CONTENT -->
+<div class="content">
+  <header>
+    <div class="breadcrumb">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Affichage &nbsp;/&nbsp; <span class="current">Gabarits</span>
+    </div>
+    <div class="header-right">
+      <?php if ($canAdd): ?>
+        <button class="btn-add" id="addTemplateBtn">+ Nouveau gabarit</button>
+      <?php endif; ?>
+      <a href="logout.php" class="btn-logout">Déconnexion</a>
+    </div>
+  </header>
+
+  <div class="page-body">
+    <div class="page-title-row">
+      <h1>Gestion des gabarits d'affichage</h1>
+      <p>Choisissez et gérez les gabarits utilisés par les afficheurs</p>
+    </div>
+
+    <!-- ══ RÉSUMÉ DES ACTIONS DISPONIBLES ══ -->
+    <div class="quick-actions">
+      <div class="quick-actions-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Ce que vous pouvez faire sur cette page
+        <span style="background:<?= $roleColor ?>;color:#fff;font-size:9px;padding:2px 8px;border-radius:8px;font-weight:700;margin-left:4px"><?= $roleLabel ?></span>
+      </div>
+      <div class="qa-grid">
+        <div class="qa-item <?= $canAdd ? '' : 'disabled' ?>">
+          <div class="qa-icon">➕</div>
+          <div class="qa-text">
+            <strong>Créer un gabarit</strong>
+            <span>Ajouter un nouveau gabarit d'affichage</span>
+            <div><span class="qa-badge <?= $canAdd ? 'ok' : 'lock' ?>"><?= $canAdd ? '✓ Autorisé' : '✗ Admin requis' ?></span></div>
+          </div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-icon">👁️</div>
+          <div class="qa-text">
+            <strong>Prévisualiser</strong>
+            <span>Voir le rendu d'un gabarit en plein écran</span>
+            <div><span class="qa-badge ok">✓ Autorisé</span></div>
+          </div>
+        </div>
+        <div class="qa-item <?= $canEdit ? '' : 'disabled' ?>">
+          <div class="qa-icon">✏️</div>
+          <div class="qa-text">
+            <strong>Modifier</strong>
+            <span>Éditer les zones, textes et statut</span>
+            <div><span class="qa-badge <?= $canEdit ? 'ok' : 'lock' ?>"><?= $canEdit ? '✓ Autorisé' : '✗ Admin / Modérateur requis' ?></span></div>
+          </div>
+        </div>
+        <div class="qa-item <?= $canAssign ? '' : 'disabled' ?>">
+          <div class="qa-icon">📺</div>
+          <div class="qa-text">
+            <strong>Affecter à un écran</strong>
+            <span>Associer un gabarit à un afficheur</span>
+            <div><span class="qa-badge <?= $canAssign ? 'ok' : 'lock' ?>"><?= $canAssign ? '✓ Autorisé' : '✗ Admin / Modérateur requis' ?></span></div>
+          </div>
+        </div>
+        <div class="qa-item <?= $canDelete ? '' : 'disabled' ?>">
+          <div class="qa-icon">🗑️</div>
+          <div class="qa-text">
+            <strong>Supprimer</strong>
+            <span>Retirer définitivement un gabarit</span>
+            <div><span class="qa-badge <?= $canDelete ? 'ok' : 'lock' ?>"><?= $canDelete ? '✓ Autorisé' : '✗ Admin requis' ?></span></div>
+          </div>
+        </div>
+        <div class="qa-item <?= $canViewDB ? '' : 'disabled' ?>">
+          <div class="qa-icon">🗄️</div>
+          <div class="qa-text">
+            <strong>Base de données</strong>
+            <span>Accès direct à phpMyAdmin</span>
+            <div><span class="qa-badge <?= $canViewDB ? 'ok' : 'lock' ?>"><?= $canViewDB ? '✓ Autorisé' : '✗ Admin requis' ?></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BANDEAU si accès restreint -->
+    <?php if ($primaryRole !== 'admin'): ?>
+    <div class="role-info-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>
+        <strong>Accès <?= $roleLabel ?> :</strong>
+        <?php if ($primaryRole === 'vie_scolaire_lyceen'): ?>
+          Vous voyez uniquement le gabarit <strong>Vie scolaire – Lycée</strong>. Vous pouvez le modifier (absences, professeurs). La base de données et la gestion des utilisateurs ne sont pas accessibles.
+        <?php elseif ($primaryRole === 'vie_scolaire_postbac'): ?>
+          Vous voyez uniquement le gabarit <strong>Vie scolaire – Post-bac</strong>. Vous pouvez le modifier (absences, professeurs). La base de données et la gestion des utilisateurs ne sont pas accessibles.
+        <?php elseif ($primaryRole === 'vie_scolaire'): ?>
+          Vous voyez les gabarits de la Vie scolaire (Lycée et Post-bac). Vous pouvez les modifier. La base de données n'est pas accessible.
+        <?php elseif ($primaryRole === 'ateliers'): ?>
+          Vous voyez les gabarits Ateliers et Énergie. La saisie de production est activée. La base de données n'est pas accessible.
+        <?php else: ?>
+          Vous êtes en mode lecture seule. Les boutons de modification, suppression et affectation ne sont pas disponibles.
+        <?php endif; ?>
+      </span>
+    </div>
+    <?php endif; ?>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Gabarits total</div><div class="stat-value accent" id="statTotal">0</div><div class="stat-sub">définis dans le système</div></div>
+      <div class="stat-card"><div class="stat-label">Afficheurs</div><div class="stat-value">4</div><div class="stat-sub">écrans prévus</div></div>
+      <div class="stat-card"><div class="stat-label">Actifs</div><div class="stat-value green" id="statActif">0</div><div class="stat-sub">en ligne actuellement</div></div>
+      <div class="stat-card"><div class="stat-label">En configuration</div><div class="stat-value amber" id="statConfig">0</div><div class="stat-sub">à déployer</div></div>
+    </div>
+
+    <div class="section-header">
+      <h2>Gabarits disponibles</h2>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterCards('tous', this)">Tous</button>
+        <button class="filter-btn" onclick="filterCards('Actif', this)">Actifs</button>
+        <button class="filter-btn" onclick="filterCards('En configuration', this)">En configuration</button>
+        <button class="filter-btn" onclick="filterCards('Hors ligne', this)">Hors ligne</button>
+      </div>
+    </div>
+
+    <div class="cards-grid" id="cardsContainer"></div>
+  </div>
+
+  <footer>InfoProd – BTS CIEL IR &nbsp;·&nbsp; LGT Joseph Gaillard &nbsp;·&nbsp; Fort-de-France &nbsp;·&nbsp; Session 2026</footer>
+</div>
+
+<!-- MODAL PREVIEW -->
+<div class="modal" id="templateModal">
+  <div class="modal-box">
+    <div class="modal-top">
+      <h2 id="modalTitle">Prévisualisation du gabarit</h2>
+      <button class="close-btn" id="closeModal">Fermer</button>
+    </div>
+    <div class="screen">
+      <div class="topbar">
+        <div id="siteName">LGT Joseph GAILLARD</div>
+        <div id="dateHeure"></div>
+      </div>
+      <div class="layout">
+        <div class="panel zone1" id="zone1">Zone d'information 1</div>
+        <div class="panel zone2" id="zone2">Zone d'information 2</div>
+        <div class="panel zone3" id="zone3">Zone d'information 3</div>
+      </div>
+      <div class="footer-screen">
+        <div class="location-box" id="location">Bâtiment</div>
+        <div class="alert-box"><span id="alerteText">Urgences, rappels</span></div>
+        <div class="status-box"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT -->
+<div class="modal" id="editModal">
+  <div class="modal-box" style="max-width:680px;">
+    <div class="modal-top">
+      <h2>Modifier le gabarit</h2>
+      <button class="close-btn" id="closeEditModal">Fermer</button>
+    </div>
+    <form class="edit-form" id="editForm">
+      <div><label>Nom du gabarit</label><input type="text" id="editTitle" required></div>
+      <div><label>Nom de l'établissement</label><input type="text" id="editSite" required></div>
+      <div><label>Zone 1 (gauche – bleue)</label><textarea id="editZone1" required></textarea></div>
+      <div><label>Zone 2 (centre)</label><textarea id="editZone2" required></textarea></div>
+      <div><label>Zone 3 (droite – verte)</label><textarea id="editZone3" required></textarea></div>
+      <div><label>Bâtiment / emplacement</label><input type="text" id="editLocation" required></div>
+      <div><label>Texte de l'alerte rouge</label><input type="text" id="editAlert" required></div>
+      <div>
+        <label>Statut</label>
+        <select id="editStatus">
+          <option value="En configuration">En configuration</option>
+          <option value="Actif">Actif</option>
+          <option value="Hors ligne">Hors ligne</option>
+        </select>
+      </div>
+      <button type="submit" class="save-btn">Enregistrer les modifications</button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL ASSIGN -->
+<div class="modal" id="assignModal">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-top">
+      <h2>Affecter à un afficheur</h2>
+      <button class="close-btn" id="closeAssignModal">Fermer</button>
+    </div>
+    <form class="edit-form" id="assignForm">
+      <div>
+        <label>Choisir un afficheur</label>
+        <select id="assignDisplay" required>
+          <option value="">-- Sélectionner --</option>
+          <option value="Hall Administration">Hall Administration</option>
+          <option value="Vie scolaire C.S.E">Vie scolaire C.S.E</option>
+          <option value="Ateliers W">Ateliers W</option>
+          <option value="Physique S">Physique S</option>
+        </select>
+      </div>
+      <button type="submit" class="save-btn">Valider l'affectation</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // ── Permissions injectées depuis PHP ──────────────────────────────────────
+  const USER_ROLES  = <?= $userRolesJson ?>;
+  const CAN_ADD     = <?= $canAdd    ? 'true' : 'false' ?>;
+  const CAN_EDIT    = <?= $canEdit   ? 'true' : 'false' ?>;
+  const CAN_DELETE  = <?= $canDelete ? 'true' : 'false' ?>;
+  const CAN_ASSIGN  = <?= $canAssign ? 'true' : 'false' ?>;
+
+  // ── Gabarits disponibles selon le rôle ───────────────────────────────────
+  const ALL_GABARITS = [
+    { title:"Gabarit Administration",        site:"LGT Joseph GAILLARD", zone1:"Infos admin",           zone2:"Annonces générales",               zone3:"Énergie",          location:"Administration",    alert:"Urgences / Rappels", status:"En configuration", assigned:"" },
+    { title:"Gabarit Vie scolaire – Lycée",  site:"LGT Joseph GAILLARD", zone1:"Absences Lycée",        zone2:"Professeurs absents – Lycée",       zone3:"Infos élèves",     location:"Bâtiment C – VSL", alert:"Retards / Rappels",  status:"En configuration", assigned:"" },
+    { title:"Gabarit Vie scolaire – Post-bac",site:"LGT Joseph GAILLARD", zone1:"Absences Post-bac",   zone2:"Professeurs absents – Post-bac",    zone3:"Infos étudiants",  location:"Bâtiment C – VSP", alert:"Retards / Rappels",  status:"En configuration", assigned:"" },
+    { title:"Gabarit Ateliers",              site:"LGT Joseph GAILLARD", zone1:"Production Éolienne",   zone2:"Production Solaire + Statistiques", zone3:"CO₂",              location:"Bât. W – Ateliers", alert:"Urgences / Rappels", status:"En configuration", assigned:"" },
+    { title:"Gabarit Énergie",               site:"LGT Joseph GAILLARD", zone1:"Graphiques Production", zone2:"Stats & Historique",                zone3:"Temp. & Hygro.",   location:"Bât. S – Physique", alert:"Urgences / Rappels", status:"En configuration", assigned:"" }
+  ];
+
+  // Filtre : certains rôles ne voient que leurs gabarits
+  const ROLE_FILTER = {
+    'vie_scolaire_lyceen':  ['Gabarit Vie scolaire – Lycée'],
+    'vie_scolaire_postbac': ['Gabarit Vie scolaire – Post-bac'],
+    'vie_scolaire':         ['Gabarit Vie scolaire – Lycée', 'Gabarit Vie scolaire – Post-bac'],
+    'ateliers':             ['Gabarit Ateliers', 'Gabarit Énergie'],
+  };
+
+  function getVisibleGabarits() {
+    for (const role of Object.keys(ROLE_FILTER)) {
+      if (USER_ROLES.includes(role)) {
+        return ALL_GABARITS.filter(g => ROLE_FILTER[role].includes(g.title));
+      }
+    }
+    return ALL_GABARITS; // admin, moderator, user → tous
+  }
+
+  // ── Utilitaires ───────────────────────────────────────────────────────────
+  let currentCard = null, cardBeingEdited = null, cardBeingAssigned = null;
+
+  function mettreAJourDateHeure() {
+    const now  = new Date();
+    const jours = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+    const mois  = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const dh = document.getElementById('dateHeure');
+    if (dh) dh.textContent = `${jours[now.getDay()]} ${now.getDate()} ${mois[now.getMonth()]} ${now.getFullYear()} — ${hh}h${mm}`;
+    document.querySelectorAll('.mini-date').forEach(el => el.textContent = `${jours[now.getDay()]} ${hh}h${mm}`);
+  }
+
+  function badgeClass(s) {
+    if (s === 'Actif')          return 'badge-actif';
+    if (s === 'Hors ligne')     return 'badge-offline';
+    return 'badge-config';
+  }
+
+  function updateStats() {
+    const cards = document.querySelectorAll('.gabarit-card');
+    let actif = 0, config = 0;
+    cards.forEach(c => {
+      if (c.dataset.status === 'Actif')          actif++;
+      else if (c.dataset.status === 'En configuration') config++;
+    });
+    document.getElementById('statTotal').textContent = cards.length;
+    document.getElementById('statActif').textContent = actif;
+    document.getElementById('statConfig').textContent = config;
+  }
+
+  function createCardHTML(d) {
+    return `
+      <div class="preview">
+        <div class="mini-screen">
+          <div class="mini-topbar"><div>${d.site}</div><div class="mini-date"></div></div>
+          <div class="mini-layout">
+            <div class="mini-panel mini-zone1">${d.zone1}</div>
+            <div class="mini-panel mini-zone2">${d.zone2}</div>
+            <div class="mini-panel mini-zone3">${d.zone3}</div>
+          </div>
+          <div class="mini-footer">
+            <div class="mini-location">${d.location}</div>
+            <div class="mini-alert">${d.alert}</div>
+            <div class="mini-status"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-top-row">
+          <div class="card-name">${d.title}</div>
+          <span class="status-badge ${badgeClass(d.status)}"><span class="badge-dot"></span>${d.status}</span>
+        </div>
+        <div class="card-location">Bâtiment : ${d.location}</div>
+        <div class="card-assigned">Afficheur : ${d.assigned || 'Non affecté'}</div>
+        <div class="card-divider"></div>
+        <div class="actions">
+          ${CAN_EDIT   ? '<button class="btn btn-edit">✏️ Modifier</button>'      : ''}
+          <button class="btn btn-preview">👁️ Prévisualiser</button>
+          ${CAN_ASSIGN ? '<button class="btn btn-assign">📺 Affecter</button>'    : ''}
+          ${CAN_DELETE ? '<button class="btn btn-delete">🗑️ Supprimer</button>'  : ''}
+        </div>
+      </div>`;
+  }
+
+  function updateCardVisual(card) {
+    const d = card.dataset;
+    card.querySelector('.card-name').textContent     = d.title;
+    card.querySelector('.card-location').textContent = 'Bâtiment : ' + d.location;
+    card.querySelector('.card-assigned').textContent = 'Afficheur : ' + (d.assigned || 'Non affecté');
+    const badge = card.querySelector('.status-badge');
+    badge.className = `status-badge ${badgeClass(d.status)}`;
+    badge.innerHTML = `<span class="badge-dot"></span>${d.status}`;
+    card.querySelector('.mini-zone1').textContent     = d.zone1;
+    card.querySelector('.mini-zone2').textContent     = d.zone2;
+    card.querySelector('.mini-zone3').textContent     = d.zone3;
+    card.querySelector('.mini-location').textContent  = d.location;
+    card.querySelector('.mini-alert').textContent     = d.alert;
+    card.querySelector('.mini-topbar div:first-child').textContent = d.site;
+    updateStats();
+  }
+
+  function openTemplate(card) {
+    currentCard = card;
+    const d = card.dataset;
+    document.getElementById('modalTitle').textContent  = d.title;
+    document.getElementById('siteName').textContent    = d.site;
+    document.getElementById('zone1').textContent       = d.zone1;
+    document.getElementById('zone2').textContent       = d.zone2;
+    document.getElementById('zone3').textContent       = d.zone3;
+    document.getElementById('location').textContent    = d.location;
+    document.getElementById('alerteText').textContent  = d.alert;
+    document.getElementById('templateModal').classList.add('active');
+    mettreAJourDateHeure();
+  }
+
+  function openEditModal(card) {
+    cardBeingEdited = card;
+    const d = card.dataset;
+    document.getElementById('editTitle').value    = d.title;
+    document.getElementById('editSite').value     = d.site;
+    document.getElementById('editZone1').value    = d.zone1;
+    document.getElementById('editZone2').value    = d.zone2;
+    document.getElementById('editZone3').value    = d.zone3;
+    document.getElementById('editLocation').value = d.location;
+    document.getElementById('editAlert').value    = d.alert;
+    document.getElementById('editStatus').value   = d.status;
+    document.getElementById('editModal').classList.add('active');
+  }
+
+  function openAssignModal(card) {
+    cardBeingAssigned = card;
+    document.getElementById('assignDisplay').value = card.dataset.assigned || '';
+    document.getElementById('assignModal').classList.add('active');
+  }
+
+  function filterCards(f, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.gabarit-card').forEach(card => {
+      card.style.display = (f === 'tous' || card.dataset.status === f) ? '' : 'none';
+    });
+  }
+
+  function attachCardEvents(card) {
+    const previewBtn = card.querySelector('.btn-preview');
+    const editBtn    = card.querySelector('.btn-edit');
+    const assignBtn  = card.querySelector('.btn-assign');
+    const deleteBtn  = card.querySelector('.btn-delete');
+
+    if (previewBtn) previewBtn.addEventListener('click', e => { e.stopPropagation(); openTemplate(card); });
+    if (editBtn)    editBtn.addEventListener('click', e => { e.stopPropagation(); openEditModal(card); });
+    if (assignBtn)  assignBtn.addEventListener('click', e => { e.stopPropagation(); openAssignModal(card); });
+    if (deleteBtn)  deleteBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm(`Supprimer "${card.dataset.title}" ?`)) return;
+      ['templateModal','editModal','assignModal'].forEach(id => document.getElementById(id).classList.remove('active'));
+      card.remove();
+      updateStats();
+    });
+  }
+
+  function addCard(d) {
+    const card = document.createElement('div');
+    card.className = 'gabarit-card';
+    Object.assign(card.dataset, { title: d.title, site: d.site, zone1: d.zone1, zone2: d.zone2, zone3: d.zone3, location: d.location, alert: d.alert, status: d.status, assigned: d.assigned || '' });
+    card.innerHTML = createCardHTML(d);
+    document.getElementById('cardsContainer').appendChild(card);
+    attachCardEvents(card);
+    mettreAJourDateHeure();
+    updateStats();
+  }
+
+  // Formulaire édition
+  document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!cardBeingEdited) return;
+    Object.assign(cardBeingEdited.dataset, {
+      title:    document.getElementById('editTitle').value,
+      site:     document.getElementById('editSite').value,
+      zone1:    document.getElementById('editZone1').value,
+      zone2:    document.getElementById('editZone2').value,
+      zone3:    document.getElementById('editZone3').value,
+      location: document.getElementById('editLocation').value,
+      alert:    document.getElementById('editAlert').value,
+      status:   document.getElementById('editStatus').value,
+    });
+    updateCardVisual(cardBeingEdited);
+    if (currentCard === cardBeingEdited && document.getElementById('templateModal').classList.contains('active')) openTemplate(cardBeingEdited);
+    document.getElementById('editModal').classList.remove('active');
+  });
+
+  // Formulaire affectation
+  document.getElementById('assignForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!cardBeingAssigned) return;
+    cardBeingAssigned.dataset.assigned = document.getElementById('assignDisplay').value;
+    updateCardVisual(cardBeingAssigned);
+    document.getElementById('assignModal').classList.remove('active');
+  });
+
+  // Bouton ajouter (admin seulement)
+  const addBtn = document.getElementById('addTemplateBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      addCard({ title:'Nouveau gabarit', site:'LGT Joseph GAILLARD', zone1:'Zone 1', zone2:'Zone 2', zone3:'Zone 3', location:'Nouveau bâtiment', alert:'Nouvelle alerte', status:'En configuration', assigned:'' });
+    });
+  }
+
+  // Fermeture des modals
+  ['closeModal','closeEditModal','closeAssignModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => {
+      ['templateModal','editModal','assignModal'].forEach(m => document.getElementById(m).classList.remove('active'));
+    });
+  });
+  ['templateModal','editModal','assignModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => {
+      if (e.target === document.getElementById(id)) document.getElementById(id).classList.remove('active');
+    });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') ['templateModal','editModal','assignModal'].forEach(m => document.getElementById(m).classList.remove('active'));
+  });
+
+  // ── Initialisation ────────────────────────────────────────────────────────
+  getVisibleGabarits().forEach(d => addCard(d));
+  mettreAJourDateHeure();
+  setInterval(mettreAJourDateHeure, 1000);
+</script>
+</body>
+</html>
