@@ -1,0 +1,82 @@
+@startuml deploiement_BIVARD
+
+title Diagramme de déploiement — Partie Mesure\nProjet InfoProd · Étudiant 3 BIVARD · BTS CIEL IR 2026
+
+skinparam nodeBackgroundColor #FFF9E6
+skinparam nodeBorderColor #CC6600
+skinparam nodeFontColor #222222
+skinparam nodeFontStyle bold
+skinparam nodeFontSize 13
+skinparam nodeBorderThickness 1.5
+skinparam artifactBackgroundColor #D4720A
+skinparam artifactFontColor #FFFFFF
+skinparam artifactBorderColor #CC6600
+skinparam artifactFontStyle bold
+skinparam componentBackgroundColor #FFF9E6
+skinparam componentBorderColor #CC6600
+skinparam componentFontColor #444444
+skinparam databaseBackgroundColor #DDDDDD
+skinparam databaseBorderColor #888888
+skinparam databaseFontColor #444444
+skinparam databaseFontStyle italic
+skinparam ArrowColor #CC6600
+skinparam ArrowThickness 1.5
+skinparam ArrowFontColor #555555
+skinparam ArrowFontSize 11
+skinparam NoteBackgroundColor #FFF9E6
+skinparam NoteBorderColor #CC6600
+skinparam NoteFontSize 11
+skinparam cloudBackgroundColor #FAFAFA
+skinparam cloudBorderColor #AAAAAA
+skinparam cloudFontColor #555555
+skinparam shadowing false
+
+cloud "Réseau informatique du lycée\n192.168.0.x / 192.168.1.x" as RESEAU {
+
+  together {
+    node "IPX800 V4\nSite 1 — Bât. W (Ateliers)" as IPX800 {
+      [API XML\n/status.xml] as API_IPX
+    }
+
+    node "PC développeur\nWindows 10/11" as PC {
+      artifact "eco_device_parser.py" as EDP
+      artifact "ipx_read.py"          as IPX
+      artifact "dashboard.html"       as DASH
+    }
+
+    node "Eco-Device\nSite 2 — Bât. S (Physique)" as ECODEV {
+      [API XML\n/status.xml] as API_ECO
+    }
+  }
+
+  node "Serveur BDD\n«Étudiant 4»" as SERV {
+    database "MySQL\ninfoprod.production" as DB
+  }
+
+}
+
+IPX  --> API_IPX  : HTTP GET /status.xml\ntoutes les 10s
+EDP  --> API_ECO  : HTTP GET /status.xml\ntoutes les 10s
+IPX  --> DASH     : alimente Site 1
+EDP  --> DASH     : alimente Site 2
+PC   ..> SERV     : envoyer_bdd()\ntoutes les 10 min
+
+note left of IPX800
+  IP : 192.168.0.131
+  Éolienne + solaire
+  Balise : <analog1>
+end note
+
+note right of ECODEV
+  IP : 192.168.0.138
+  Solaire
+  T1_PPAP, meter0, c0day
+end note
+
+note bottom of SERV
+  IP : 192.168.1.53
+  Partie non développée
+  par BIVARD
+end note
+
+@enduml
