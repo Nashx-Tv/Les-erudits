@@ -3,345 +3,456 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Énergie - IPX & Eco-Device</title>
+<title>InfoProd — Dashboard Énergie</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: white; min-height: 100vh; }
-header { text-align: center; padding: 22px 20px 18px; font-size: 22px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
-#statusBadge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 400; background: rgba(255,255,255,0.12); border-radius: 20px; padding: 5px 14px; border: 1px solid rgba(255,255,255,0.1); }
-#statusDot { width: 8px; height: 8px; border-radius: 50%; background: #aaa; transition: background .3s; }
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: white;
+  min-height: 100vh;
+}
+
+header {
+  padding: 24px 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.header-title { font-size: 22px; font-weight: 600; }
+
+#statusBadge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; background: rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 5px 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+#statusDot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #aaa; transition: background .3s;
+}
 #statusDot.ok      { background: #4cd964; box-shadow: 0 0 6px #4cd964; }
 #statusDot.err     { background: #ff3b30; box-shadow: 0 0 6px #ff3b30; }
-#statusDot.loading { background: #f9d423; box-shadow: 0 0 6px #f9d423; }
+#statusDot.loading { background: #f9d423; box-shadow: 0 0 6px #f9d423; animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-.container { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.container {
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
 
-.card { background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border-radius: 18px; padding: 22px; box-shadow: 0 8px 32px rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.07); position: relative; overflow: hidden; display: flex; flex-direction: column; }
-.source-tag { display: inline-block; font-size: 10px; border-radius: 20px; padding: 3px 10px; margin-bottom: 10px; letter-spacing: 1.5px; font-weight: 600; width: fit-content; }
+.card {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.07);
+  display: flex; flex-direction: column;
+}
+.bdd-card { grid-column: 1 / -1; }
+
+.source-tag {
+  display: inline-block; font-size: 10px; border-radius: 20px;
+  padding: 3px 11px; margin-bottom: 12px;
+  letter-spacing: 1.5px; font-weight: 600; width: fit-content;
+}
 .tag-ipx { background: rgba(0,198,255,0.15); color: #00c6ff; border: 1px solid rgba(0,198,255,0.25); }
-.tag-eco { background: rgba(249,212,35,0.15); color: #f9d423; border: 1px solid rgba(249,212,35,0.25); }
-.card h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; opacity: .95; }
-.value { font-size: 36px; font-weight: 700; letter-spacing: -1px; margin: 4px 0 6px; color: white; }
-.co2-val { font-size: 36px; font-weight: 700; color: #4cd964; letter-spacing: -1px; margin: 4px 0 6px; }
-.timestamp { font-size: 12px; opacity: 0.5; margin-top: 4px; }
+.tag-eco { background: rgba(249,212,35,0.15); color: #f9d423;  border: 1px solid rgba(249,212,35,0.25); }
+.tag-co2 { background: rgba(76,217,100,0.15); color: #4cd964;  border: 1px solid rgba(76,217,100,0.25); }
 
-/* ── Barre 10s ── */
-.timer-wrap { display:flex; align-items:center; gap:10px; margin-top:14px; }
-.timer-lbl  { font-size:11px; opacity:.45; white-space:nowrap; }
-.timer-val  { font-size:13px; font-weight:600; color:#00c6ff; min-width:22px; }
-.timer-bg   { flex:1; background:rgba(255,255,255,0.07); border-radius:4px; height:4px; overflow:hidden; }
-.timer-fill { height:4px; border-radius:4px; width:100%; transition:width 1s linear; }
-#timerFillEol { background: linear-gradient(90deg,#00c6ff,#4cd964); }
-#timerFillPV  { background: linear-gradient(90deg,#f9d423,#4cd964); }
+.card h2   { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+.value     { font-size: 38px; font-weight: 700; letter-spacing: -1px; margin: 4px 0 6px; }
+.co2-val   { font-size: 38px; font-weight: 700; color: #4cd964; letter-spacing: -1px; margin: 4px 0 6px; }
+.timestamp { font-size: 12px; opacity: .5; margin-top: 4px; }
 
-.moy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-.moy-box { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.07); }
-.moy-box .lbl { font-size: 10px; opacity: .5; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 5px; }
+.timer-wrap { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+.timer-lbl  { font-size: 11px; opacity: .45; white-space: nowrap; }
+.timer-val  { font-size: 13px; font-weight: 600; color: #00c6ff; min-width: 22px; }
+.timer-bg   { flex: 1; background: rgba(255,255,255,0.07); border-radius: 4px; height: 4px; overflow: hidden; }
+.timer-fill { height: 4px; border-radius: 4px; width: 100%; transition: width 1s linear; }
+#timerFillEol { background: linear-gradient(90deg, #00c6ff, #4cd964); }
+#timerFillPV  { background: linear-gradient(90deg, #f9d423, #4cd964); }
+
+.moy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.moy-box  {
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px; padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.moy-box .lbl     { font-size: 10px; opacity: .5; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 5px; }
 .moy-box .moy-val { font-size: 22px; font-weight: 700; }
 .moy-box .moy-val.eol   { color: #00c6ff; }
 .moy-box .moy-val.pv    { color: #f9d423; }
 .moy-box .moy-val.total { color: white; }
 .moy-box .moy-sub { font-size: 10px; opacity: .4; margin-top: 2px; }
 
-/* Ajustement graphique pour tenir dans la demi-largeur */
 canvas { width: 100% !important; height: 320px !important; }
 
-.bdd-card { grid-column: 1 / -1; }
 #saveNotif { display: none; padding: 8px 14px; border-radius: 10px; font-size: 12px; margin-bottom: 10px; }
 #saveNotif.ok  { background: rgba(76,217,100,.12); border: 1px solid rgba(76,217,100,.3); color: #4cd964; }
 #saveNotif.err { background: rgba(255,59,48,.12);  border: 1px solid rgba(255,59,48,.3);  color: #ff6b6b; }
+
 .hist-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
-.hist-table th { text-align: left; padding: 9px 12px; background: rgba(255,255,255,0.07); border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: .6; }
+.hist-table th {
+  text-align: left; padding: 9px 12px;
+  background: rgba(255,255,255,0.07);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: .6;
+}
 .hist-table td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
+.hist-table tr:hover td { background: rgba(255,255,255,0.03); }
 .c-eol  { color: #00c6ff; font-weight: 600; }
 .c-pv   { color: #f9d423; font-weight: 600; }
 .c-moy  { color: #a78bfa; font-weight: 600; }
 .c-date { opacity: .45; font-size: 11px; }
-#errBDD { display: none; margin-top: 10px; padding: 10px 14px; border-radius: 10px; font-size: 12px; color: #ff6b6b; background: rgba(255,59,48,.12); border: 1px solid rgba(255,59,48,.3); white-space: pre-line; }
 
-@media(max-width: 1024px) { .container { grid-template-columns: 1fr; } .bdd-card { grid-column: 1; } }
+.btn-refresh {
+  padding: 6px 14px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  color: white; font-family: 'Poppins', sans-serif;
+  font-size: 12px; cursor: pointer; transition: background .2s;
+}
+.btn-refresh:hover { background: rgba(255,255,255,0.14); }
+
+@media(max-width: 1024px) {
+  .container { grid-template-columns: 1fr; }
+  .bdd-card  { grid-column: 1; }
+}
 </style>
 </head>
 <body>
 
 <header>
-    🌍 Dashboard Énergie Multisites
-    <span id="statusBadge">
-        <span id="statusDot" class="loading"></span>
-        <span id="statusText">Initialisation...</span>
-    </span>
+  <span class="header-title">🌍 Dashboard Énergie — InfoProd</span>
+  <span id="statusBadge">
+    <span id="statusDot" class="loading"></span>
+    <span id="statusText">Initialisation…</span>
+  </span>
 </header>
 
 <div class="container">
 
-    <div class="card">
-        <div class="source-tag tag-ipx">SITE 1 · IPX800 (XML)</div>
-        <h2>🌬 Éolienne</h2>
-        <div class="value" id="eolienneValue">— kWh</div>
-        <div class="timestamp" id="timeEolienne">En attente…</div>
-        <div class="timer-wrap">
-            <span class="timer-lbl">Prochain relevé</span>
-            <span class="timer-val" id="cntEol">10s</span>
-            <div class="timer-bg"><div class="timer-fill" id="timerFillEol"></div></div>
-        </div>
+  <!-- ── Site 1 — Éolienne (IPX800) ── -->
+  <div class="card">
+    <div class="source-tag tag-ipx">SITE 1 · IPX800 V4 · 192.168.0.131</div>
+    <h2>🌬 Éolienne</h2>
+    <div class="value" id="eolienneValue">— kWh</div>
+    <div class="timestamp" id="timeEolienne">En attente…</div>
+    <div class="timer-wrap">
+      <span class="timer-lbl">Prochain relevé</span>
+      <span class="timer-val" id="cntEol">10s</span>
+      <div class="timer-bg"><div class="timer-fill" id="timerFillEol"></div></div>
     </div>
+  </div>
 
-    <div class="card">
-        <div class="source-tag tag-eco">SITE 2 · ECO-DEVICE (JSON)</div>
-        <h2>☀️ Photovoltaïque</h2>
-        <div class="value" id="pvValue">— kWh</div>
-        <div class="timestamp" id="timePV">En attente…</div>
-        <div class="timer-wrap">
-            <span class="timer-lbl">Prochain relevé</span>
-            <span class="timer-val" id="cntPV">10s</span>
-            <div class="timer-bg"><div class="timer-fill" id="timerFillPV"></div></div>
-        </div>
+  <!-- ── Site 2 — PV (Eco-Device via Flask) ── -->
+  <div class="card">
+    <div class="source-tag tag-eco">SITE 2 · ECO-DEVICE · via Flask :5000</div>
+    <h2>☀️ Photovoltaïque</h2>
+    <div class="value" id="pvValue">— kWh</div>
+    <div class="timestamp" id="timePV">En attente…</div>
+    <div class="timer-wrap">
+      <span class="timer-lbl">Prochain relevé</span>
+      <span class="timer-val" id="cntPV">10s</span>
+      <div class="timer-bg"><div class="timer-fill" id="timerFillPV"></div></div>
     </div>
+  </div>
 
-    <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-            <h2 style="margin:0;">📈 Comparatif TR</h2>
-            <div style="display:flex;gap:10px;font-size:10px; opacity: 0.7;">
-                <span><span style="display:inline-block;width:8px;height:8px;background:#00c6ff;border-radius:2px;margin-right:3px;"></span>Éolienne</span>
-                <span><span style="display:inline-block;width:8px;height:8px;background:#f9d423;border-radius:2px;margin-right:3px;"></span>PV</span>
-            </div>
-        </div>
-        <canvas id="energyChart"></canvas>
+  <!-- ── Graphique ── -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <h2 style="margin:0;">📈 Comparatif temps réel</h2>
+      <div style="display:flex;gap:12px;font-size:11px;opacity:.7;align-items:center;">
+        <span><span style="display:inline-block;width:10px;height:3px;background:#00c6ff;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Éolienne</span>
+        <span><span style="display:inline-block;width:10px;height:3px;background:#f9d423;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>PV</span>
+      </div>
     </div>
+    <canvas id="energyChart"></canvas>
+  </div>
 
-    <div class="card">
-        <div>
-            <h2>🌱 CO₂ Économisé (Global)</h2>
-            <div class="co2-val" id="co2Value">— kg</div>
-            <div class="timestamp" id="globalTime">Mise à jour multisites</div>
-        </div>
-        <div style="margin-top: auto;">
-            <h2 style="margin-top:18px;font-size:15px;opacity:.8; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">📊 Statut des relevés</h2>
-            <div class="moy-grid">
-                <div class="moy-box">
-                    <div class="lbl">Moy. Éolienne</div>
-                    <div class="moy-val eol" id="moyEol">—</div>
-                    <div class="moy-sub">kWh / relevé</div>
-                </div>
-                <div class="moy-box">
-                    <div class="lbl">Moy. PV</div>
-                    <div class="moy-val pv" id="moyPV">—</div>
-                    <div class="moy-sub">kWh / relevé</div>
-                </div>
-                <div class="moy-box">
-                    <div class="lbl">Relevés du jour</div>
-                    <div class="moy-val total" id="nbReleves">0</div>
-                    <div class="moy-sub">enregistrements</div>
-                </div>
-                <div class="moy-box">
-                    <div class="lbl">Intervalle</div>
-                    <div class="moy-val total">10s</div>
-                    <div class="moy-sub">Fréquence</div>
-                </div>
-            </div>
-        </div>
+  <!-- ── CO₂ + Stats ── -->
+  <div class="card">
+    <div>
+      <div class="source-tag tag-co2">CO₂ GLOBAL</div>
+      <h2>🌱 CO₂ Économisé</h2>
+      <div class="co2-val" id="co2Value">— kg</div>
+      <div class="timestamp" id="globalTime">Multisites combinés</div>
     </div>
+    <div style="margin-top:auto;">
+      <h2 style="margin-top:20px;font-size:15px;opacity:.8;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">📊 Statistiques</h2>
+      <div class="moy-grid">
+        <div class="moy-box">
+          <div class="lbl">Moy. Éolienne</div>
+          <div class="moy-val eol" id="moyEol">—</div>
+          <div class="moy-sub">kWh / relevé</div>
+        </div>
+        <div class="moy-box">
+          <div class="lbl">Moy. PV</div>
+          <div class="moy-val pv" id="moyPV">—</div>
+          <div class="moy-sub">kWh / relevé</div>
+        </div>
+        <div class="moy-box">
+          <div class="lbl">Relevés du jour</div>
+          <div class="moy-val total" id="nbReleves">0</div>
+          <div class="moy-sub">enregistrements</div>
+        </div>
+        <div class="moy-box">
+          <div class="lbl">Intervalle</div>
+          <div class="moy-val total">10s</div>
+          <div class="moy-sub">fréquence</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <div class="card bdd-card">
-        <h2>🗄️ Historique des enregistrements BDD</h2>
-        <div id="saveNotif"></div>
-        <div id="errBDD"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:8px;">
-            <span style="font-size:12px;opacity:.5;">20 derniers enregistrements</span>
-            <button onclick="chargerHistorique()" style="padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:white;font-family:Poppins,sans-serif;font-size:12px;cursor:pointer;">🔄 Actualiser</button>
-        </div>
-        <table class="hist-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Éolienne (IPX)</th>
-                    <th>PV (Eco)</th>
-                    <th>Moyenne</th>
-                    <th>Date</th>
-                    <th>Heure</th>
-                </tr>
-            </thead>
-            <tbody id="histBody">
-                <tr><td colspan="6" style="text-align:center;opacity:.35;padding:24px">En attente des données…</td></tr>
-            </tbody>
-        </table>
+  <!-- ── Historique BDD ── -->
+  <div class="card bdd-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <h2>🗄️ Historique des enregistrements BDD</h2>
+      <button class="btn-refresh" onclick="chargerHistorique()">🔄 Actualiser</button>
     </div>
+    <div id="saveNotif"></div>
+    <div style="font-size:11px;opacity:.4;margin-top:6px;">20 derniers enregistrements</div>
+    <div style="overflow-x:auto;">
+      <table class="hist-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Éolienne (IPX800)</th>
+            <th>PV (Eco-Device)</th>
+            <th>Moyenne</th>
+            <th>Date</th>
+            <th>Heure</th>
+          </tr>
+        </thead>
+        <tbody id="histBody">
+          <tr><td colspan="6" style="text-align:center;opacity:.35;padding:28px;">En attente des données…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 </div>
 
 <script>
-// Code JS identique à l'original pour la logique
-const IPX_XML_URL  = "http://192.168.0.131/status.xml";
-const ECO_JSON_URL = "http://127.0.0.1:5000/api/ecodevice";
-const API_BDD_URL  = "http://192.168.1.53/api_analog.php";
-const REFRESH_MS   = 10000;
-const SAVE_MS      = 10 * 60 * 1000;
-const MAX_GRAPH    = 60;
-const STEP_Y       = 10;
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+const IPX_URL    = "http://192.168.0.131/status.xml";  // Site 1 — IPX800 V4 (XML direct)
+const ECO_URL    = "http://127.0.0.1:5000/api/ecodevice"; // Site 2 — Eco-Device via Flask
+const API_BDD    = "http://192.168.1.53/api_analog.php";
+const REFRESH_MS = 10000;
+const SAVE_MS    = 10 * 60 * 1000;
+const MAX_GRAPH  = 60;
+const STEP_Y     = 10;
+// ════════════════════════════════════════════
 
 const journalEol = [];
 const journalPV  = [];
 
+// ── Graphique ──
 const chart = new Chart(
-    document.getElementById('energyChart').getContext('2d'),
-    {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                {
-                    label: 'Éolienne',
-                    data: [],
-                    borderColor: '#00c6ff',
-                    backgroundColor: 'rgba(0,198,255,0.09)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 2,
-                    borderWidth: 2,
-                },
-                {
-                    label: 'PV',
-                    data: [],
-                    borderColor: '#f9d423',
-                    backgroundColor: 'rgba(249,212,35,0.07)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 2,
-                    borderWidth: 2,
-                }
-            ]
+  document.getElementById('energyChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Éolienne',
+          data: [],
+          borderColor: '#00c6ff',
+          backgroundColor: 'rgba(0,198,255,0.09)',
+          fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { display: false } },
-                y: { beginAtZero: true, ticks: { color: 'rgba(255,255,255,0.3)', stepSize: STEP_Y }, grid: { color: 'rgba(255,255,255,0.05)' } }
-            }
+        {
+          label: 'PV',
+          data: [],
+          borderColor: '#f9d423',
+          backgroundColor: 'rgba(249,212,35,0.07)',
+          fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2
         }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: 'rgba(255,255,255,0.3)', stepSize: STEP_Y }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
     }
+  }
 );
 
+// ── Helpers ──
 function setStatus(state, txt) {
-    document.getElementById('statusDot').className  = state;
-    document.getElementById('statusText').innerText = txt;
+  document.getElementById('statusDot').className  = state;
+  document.getElementById('statusText').innerText = txt;
 }
 function nowStr() {
-    return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date().toLocaleTimeString('fr-FR', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
 }
 function avg(arr) {
-    if (!arr.length) return 0;
-    return arr.reduce((a, b) => a + b, 0) / arr.length;
+  if (!arr.length) return 0;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
+// ── Countdown 10s ──
 let cntDown = 10;
 setInterval(() => {
-    cntDown--;
-    if (cntDown < 0) cntDown = 10;
-    const pct = (cntDown / 10) * 100 + '%';
-    document.getElementById('cntEol').innerText = cntDown + 's';
-    document.getElementById('cntPV').innerText  = cntDown + 's';
-    document.getElementById('timerFillEol').style.width = pct;
-    document.getElementById('timerFillPV').style.width  = pct;
+  cntDown--; if (cntDown < 0) cntDown = 10;
+  const pct = (cntDown / 10) * 100 + '%';
+  document.getElementById('cntEol').innerText = cntDown + 's';
+  document.getElementById('cntPV').innerText  = cntDown + 's';
+  document.getElementById('timerFillEol').style.width = pct;
+  document.getElementById('timerFillPV').style.width  = pct;
 }, 1000);
 
+// ════════════════════════════════════════════
+// SITE 1 — IPX800 V4 (XML direct)
+// Lit analog1 = éolienne
+// ════════════════════════════════════════════
 async function fetchIPX() {
-    try {
-        const res    = await fetch(IPX_XML_URL, { cache: "no-store" });
-        const txt    = await res.text();
-        const xmlDoc = new DOMParser().parseFromString(txt, "application/xml");
-        const node = xmlDoc.querySelector("analog1");
-        return node ? (parseFloat(node.textContent) || 0) : 0;
-    } catch (e) { return null; }
+  try {
+    const res  = await fetch(IPX_URL, { cache: 'no-store' });
+    const txt  = await res.text();
+    const xml  = new DOMParser().parseFromString(txt, 'application/xml');
+    const node = xml.querySelector('analog1');
+    return node ? (parseFloat(node.textContent) || 0) : 0;
+  } catch (e) {
+    console.warn("IPX800 inaccessible :", e);
+    return null;
+  }
 }
 
+// ════════════════════════════════════════════
+// SITE 2 — Eco-Device via Flask
+// Flask tourne sur : python app.py (port 5000)
+// Lit c1day_kwh = production PV du jour en kWh
+// ════════════════════════════════════════════
 async function fetchEcoDevice() {
-    try {
-        const res  = await fetch(ECO_JSON_URL, { cache: "no-store" });
-        const data = await res.json();
-        return parseFloat(data.energie_jour_c1_kwh) || 0;
-    } catch (e) { return null; }
+  try {
+    const res  = await fetch(ECO_URL, { cache: 'no-store' });
+    const data = await res.json();
+    return parseFloat(data.c1day_kwh) || 0;
+  } catch (e) {
+    console.warn("Eco-Device (Flask) inaccessible :", e);
+    return null;
+  }
 }
 
+// ── Mise à jour dashboard ──
 async function updateDashboard() {
-    const t = nowStr();
-    const valEol = await fetchIPX();
-    const valPV  = await fetchEcoDevice();
+  const t      = nowStr();
+  const valEol = await fetchIPX();
+  const valPV  = await fetchEcoDevice();
 
-    if (valEol !== null) {
-        document.getElementById('eolienneValue').innerText = valEol.toFixed(2) + " kWh";
-        document.getElementById('timeEolienne').innerText  = "Mis à jour : " + t;
-        journalEol.push(valEol);
-    }
-    if (valPV !== null) {
-        document.getElementById('pvValue').innerText = valPV.toFixed(2) + " kWh";
-        document.getElementById('timePV').innerText  = "Mis à jour : " + t;
-        journalPV.push(valPV);
-    }
+  // Site 1 — Éolienne
+  if (valEol !== null) {
+    document.getElementById('eolienneValue').innerText = valEol.toFixed(3) + " kWh";
+    document.getElementById('timeEolienne').innerText  = "Mis à jour : " + t;
+    journalEol.push(valEol);
+  } else {
+    document.getElementById('timeEolienne').innerText = "❌ IPX800 hors ligne";
+  }
 
-    const totalKwh = (valEol || 0) + (valPV || 0);
-    document.getElementById('co2Value').innerText   = (totalKwh * 0.75).toFixed(2) + " kg";
-    document.getElementById('globalTime').innerText = "Calculé à " + t;
-    document.getElementById('moyEol').innerText     = avg(journalEol).toFixed(2);
-    document.getElementById('moyPV').innerText      = avg(journalPV).toFixed(2);
-    document.getElementById('nbReleves').innerText  = journalEol.length;
+  // Site 2 — PV
+  if (valPV !== null) {
+    document.getElementById('pvValue').innerText = valPV.toFixed(3) + " kWh";
+    document.getElementById('timePV').innerText  = "Mis à jour : " + t;
+    journalPV.push(valPV);
+  } else {
+    document.getElementById('timePV').innerText = "❌ Flask hors ligne — lance python app.py";
+  }
 
-    chart.data.labels.push(t);
-    chart.data.datasets[0].data.push(valEol);
-    chart.data.datasets[1].data.push(valPV);
-    if (chart.data.labels.length > MAX_GRAPH) {
-        chart.data.labels.shift();
-        chart.data.datasets.forEach(d => d.data.shift());
-    }
-    chart.update();
+  // CO₂
+  const total = (valEol || 0) + (valPV || 0);
+  document.getElementById('co2Value').innerText   = (total * 0.75).toFixed(3) + " kg";
+  document.getElementById('globalTime').innerText = "Calculé à " + t;
 
-    if (valEol !== null && valPV !== null) setStatus('ok', `Connecté · ${t}`);
-    else setStatus('loading', `Données partielles · ${t}`);
+  // Stats
+  document.getElementById('moyEol').innerText    = avg(journalEol).toFixed(3);
+  document.getElementById('moyPV').innerText     = avg(journalPV).toFixed(3);
+  document.getElementById('nbReleves').innerText = journalEol.length;
+
+  // Graphique
+  chart.data.labels.push(t);
+  chart.data.datasets[0].data.push(valEol ?? 0);
+  chart.data.datasets[1].data.push(valPV  ?? 0);
+  if (chart.data.labels.length > MAX_GRAPH) {
+    chart.data.labels.shift();
+    chart.data.datasets.forEach(d => d.data.shift());
+  }
+  chart.update('none');
+
+  // Badge statut
+  if (valEol !== null && valPV !== null) {
+    setStatus('ok', `Connecté · ${t}`);
+  } else if (valEol === null && valPV === null) {
+    setStatus('err', `Les deux sources hors ligne · ${t}`);
+  } else {
+    setStatus('loading', `Données partielles · ${t}`);
+  }
 }
 
+// ── Sauvegarde BDD (toutes les 10 min) ──
 setInterval(async () => {
-    const eol = parseFloat(document.getElementById('eolienneValue').innerText) || 0;
-    const pv  = parseFloat(document.getElementById('pvValue').innerText) || 0;
-    const moy = parseFloat(avg(journalEol).toFixed(3));
-    try {
-        const res = await fetch(API_BDD_URL + "?action=enregistrer", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ analog1: eol, analog2: pv, moyenne: moy })
-        });
-        const data = await res.json();
-        if (data.succes) {
-            const notif = document.getElementById('saveNotif');
-            notif.className = 'ok';
-            notif.innerText = `✅ Enregistré à ${data.heure}`;
-            notif.style.display = 'block';
-            setTimeout(() => notif.style.display = 'none', 5000);
-            chargerHistorique();
-        }
-    } catch (e) { console.error("Erreur BDD"); }
+  const eol = parseFloat(document.getElementById('eolienneValue').innerText) || 0;
+  const pv  = parseFloat(document.getElementById('pvValue').innerText)       || 0;
+  const moy = parseFloat(avg(journalEol).toFixed(3));
+  try {
+    const res  = await fetch(API_BDD + "?action=enregistrer", {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ analog1: eol, analog2: pv, moyenne: moy })
+    });
+    const data = await res.json();
+    if (data.succes) {
+      const notif = document.getElementById('saveNotif');
+      notif.className     = 'ok';
+      notif.innerText     = `✅ Enregistré à ${data.heure}`;
+      notif.style.display = 'block';
+      setTimeout(() => notif.style.display = 'none', 5000);
+      chargerHistorique();
+    }
+  } catch (e) { console.error("Erreur BDD :", e); }
 }, SAVE_MS);
 
+// ── Historique BDD ──
 async function chargerHistorique() {
-    try {
-        const res  = await fetch(API_BDD_URL + "?action=liste&limite=20");
-        const rows = await res.json();
-        if (!rows.length) return;
-        document.getElementById('histBody').innerHTML = rows.map(r => `
-            <tr>
-                <td style="opacity:.35">#${r.id}</td>
-                <td class="c-eol">${parseFloat(r.analog1 || 0).toFixed(2)} kWh</td>
-                <td class="c-pv">${parseFloat(r.analog2 || 0).toFixed(2)} kWh</td>
-                <td class="c-moy">${parseFloat(r.moyenne || 0).toFixed(2)} kWh</td>
-                <td class="c-date">${r.date_mesure}</td>
-                <td class="c-date">${r.heure_mesure}</td>
-            </tr>
-        `).join('');
-    } catch (e) { }
+  try {
+    const res  = await fetch(API_BDD + "?action=liste&limite=20");
+    const rows = await res.json();
+    if (!rows.length) return;
+    document.getElementById('histBody').innerHTML = rows.map(r => `
+      <tr>
+        <td style="opacity:.35">#${r.id}</td>
+        <td class="c-eol">${parseFloat(r.analog1 || 0).toFixed(3)} kWh</td>
+        <td class="c-pv">${parseFloat(r.analog2  || 0).toFixed(3)} kWh</td>
+        <td class="c-moy">${parseFloat(r.moyenne  || 0).toFixed(3)} kWh</td>
+        <td class="c-date">${r.date_mesure}</td>
+        <td class="c-date">${r.heure_mesure}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    document.getElementById('histBody').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;color:#ff6b6b;padding:24px;">Impossible de charger l\'historique</td></tr>';
+  }
 }
 
+// ── Init ──
 updateDashboard();
 setInterval(updateDashboard, REFRESH_MS);
 chargerHistorique();
