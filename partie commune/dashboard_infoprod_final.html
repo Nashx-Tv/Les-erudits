@@ -93,9 +93,29 @@ header {
 .moy-box .moy-val.eol   { color: #00c6ff; }
 .moy-box .moy-val.pv    { color: #f9d423; }
 .moy-box .moy-val.total { color: white; }
+.moy-box .moy-val.co2   { color: #4cd964; }
 .moy-box .moy-sub { font-size: 10px; opacity: .4; margin-top: 2px; }
 
-canvas { width: 100% !important; height: 320px !important; }
+/* Card CO2 étendue sur toute la largeur */
+.co2-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.co2-box {
+  background: rgba(76,217,100,0.08);
+  border-radius: 12px; padding: 12px 14px;
+  border: 1px solid rgba(76,217,100,0.15);
+  text-align: center;
+}
+.co2-box .lbl    { font-size: 10px; opacity: .6; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
+.co2-box .val    { font-size: 22px; font-weight: 700; color: #4cd964; }
+.co2-box .sub    { font-size: 10px; opacity: .4; margin-top: 3px; }
+
+canvas { width: 100% !important; height: 280px !important; }
 
 #saveNotif { display: none; padding: 8px 14px; border-radius: 10px; font-size: 12px; margin-bottom: 10px; }
 #saveNotif.ok  { background: rgba(76,217,100,.12); border: 1px solid rgba(76,217,100,.3); color: #4cd964; }
@@ -113,6 +133,7 @@ canvas { width: 100% !important; height: 320px !important; }
 .c-eol  { color: #00c6ff; font-weight: 600; }
 .c-pv   { color: #f9d423; font-weight: 600; }
 .c-moy  { color: #a78bfa; font-weight: 600; }
+.c-co2  { color: #4cd964; font-weight: 600; }
 .c-date { opacity: .45; font-size: 11px; }
 
 .btn-refresh {
@@ -127,6 +148,7 @@ canvas { width: 100% !important; height: 320px !important; }
 @media(max-width: 1024px) {
   .container { grid-template-columns: 1fr; }
   .bdd-card  { grid-column: 1; }
+  .co2-grid  { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -168,7 +190,40 @@ canvas { width: 100% !important; height: 320px !important; }
     </div>
   </div>
 
-  <!-- ── Graphique ── -->
+  <!-- ── CO₂ ── -->
+  <div class="card bdd-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="source-tag tag-co2">CO₂ GLOBAL</div>
+        <h2>🌱 CO₂ Économisé</h2>
+      </div>
+      <div style="text-align:right;">
+        <div class="co2-val" id="co2Value">— kg</div>
+        <div class="timestamp" id="globalTime">Calculé à partir des deux sites</div>
+      </div>
+    </div>
+
+    <!-- 3 indicateurs CO2 -->
+    <div class="co2-grid">
+      <div class="co2-box">
+        <div class="lbl">🌿 CO₂ instantané</div>
+        <div class="val" id="co2Inst">—</div>
+        <div class="sub">kg ce relevé</div>
+      </div>
+      <div class="co2-box">
+        <div class="lbl">📊 Moyenne CO₂ / relevé</div>
+        <div class="val" id="co2Moy">—</div>
+        <div class="sub">kg / relevé (journée)</div>
+      </div>
+      <div class="co2-box">
+        <div class="lbl">📅 Total CO₂ journée</div>
+        <div class="val" id="co2Total">—</div>
+        <div class="sub">kg économisés aujourd'hui</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Graphique + Stats ── -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
       <h2 style="margin:0;">📈 Comparatif temps réel</h2>
@@ -180,37 +235,39 @@ canvas { width: 100% !important; height: 320px !important; }
     <canvas id="energyChart"></canvas>
   </div>
 
-  <!-- ── CO₂ + Stats ── -->
+  <!-- ── Stats ── -->
   <div class="card">
-    <div>
-      <div class="source-tag tag-co2">CO₂ GLOBAL</div>
-      <h2>🌱 CO₂ Économisé</h2>
-      <div class="co2-val" id="co2Value">— kg</div>
-      <div class="timestamp" id="globalTime">Multisites combinés</div>
-    </div>
-    <div style="margin-top:auto;">
-      <h2 style="margin-top:20px;font-size:15px;opacity:.8;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">📊 Statistiques</h2>
-      <div class="moy-grid">
-        <div class="moy-box">
-          <div class="lbl">Moy. Éolienne</div>
-          <div class="moy-val eol" id="moyEol">—</div>
-          <div class="moy-sub">kWh / relevé</div>
-        </div>
-        <div class="moy-box">
-          <div class="lbl">Moy. PV</div>
-          <div class="moy-val pv" id="moyPV">—</div>
-          <div class="moy-sub">kWh / relevé</div>
-        </div>
-        <div class="moy-box">
-          <div class="lbl">Relevés du jour</div>
-          <div class="moy-val total" id="nbReleves">0</div>
-          <div class="moy-sub">enregistrements</div>
-        </div>
-        <div class="moy-box">
-          <div class="lbl">Intervalle</div>
-          <div class="moy-val total">10s</div>
-          <div class="moy-sub">fréquence</div>
-        </div>
+    <h2 style="margin-bottom:14px;">📊 Statistiques</h2>
+    <div class="moy-grid">
+      <div class="moy-box">
+        <div class="lbl">Moy. Éolienne</div>
+        <div class="moy-val eol" id="moyEol">—</div>
+        <div class="moy-sub">kWh / relevé</div>
+      </div>
+      <div class="moy-box">
+        <div class="lbl">Moy. PV</div>
+        <div class="moy-val pv" id="moyPV">—</div>
+        <div class="moy-sub">kWh / relevé</div>
+      </div>
+      <div class="moy-box">
+        <div class="lbl">Moy. CO₂</div>
+        <div class="moy-val co2" id="moyco2Stat">—</div>
+        <div class="moy-sub">kg / relevé</div>
+      </div>
+      <div class="moy-box">
+        <div class="lbl">Relevés du jour</div>
+        <div class="moy-val total" id="nbReleves">0</div>
+        <div class="moy-sub">enregistrements</div>
+      </div>
+      <div class="moy-box">
+        <div class="lbl">Total kWh jour</div>
+        <div class="moy-val total" id="totalKwh">—</div>
+        <div class="moy-sub">kWh cumulés</div>
+      </div>
+      <div class="moy-box">
+        <div class="lbl">Intervalle</div>
+        <div class="moy-val total">10s</div>
+        <div class="moy-sub">fréquence</div>
       </div>
     </div>
   </div>
@@ -230,13 +287,14 @@ canvas { width: 100% !important; height: 320px !important; }
             <th>#</th>
             <th>Éolienne (IPX800)</th>
             <th>PV (Eco-Device)</th>
-            <th>Moyenne</th>
+            <th>Total kWh</th>
+            <th>CO₂ économisé</th>
             <th>Date</th>
             <th>Heure</th>
           </tr>
         </thead>
         <tbody id="histBody">
-          <tr><td colspan="6" style="text-align:center;opacity:.35;padding:28px;">En attente des données…</td></tr>
+          <tr><td colspan="7" style="text-align:center;opacity:.35;padding:28px;">En attente des données…</td></tr>
         </tbody>
       </table>
     </div>
@@ -248,17 +306,20 @@ canvas { width: 100% !important; height: 320px !important; }
 // ════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════
-const IPX_URL    = "http://192.168.0.131/status.xml";  // Site 1 — IPX800 V4 (XML direct)
-const ECO_URL    = "http://127.0.0.1:5000/api/ecodevice"; // Site 2 — Eco-Device via Flask
+const IPX_URL    = "http://192.168.0.131/status.xml";
+const ECO_URL    = "http://127.0.0.1:5000/api/ecodevice";
 const API_BDD    = "http://192.168.1.53/api_analog.php";
 const REFRESH_MS = 10000;
 const SAVE_MS    = 10 * 60 * 1000;
 const MAX_GRAPH  = 60;
 const STEP_Y     = 10;
+const CO2_COEFF  = 0.75; // kg CO2 par kWh
 // ════════════════════════════════════════════
 
 const journalEol = [];
 const journalPV  = [];
+const journalCO2 = []; // ← journal CO2 pour la moyenne journalière
+let   totalCO2Jour = 0;
 
 // ── Graphique ──
 const chart = new Chart(
@@ -308,6 +369,9 @@ function avg(arr) {
   if (!arr.length) return 0;
   return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
+function sum(arr) {
+  return arr.reduce((a, b) => a + b, 0);
+}
 
 // ── Countdown 10s ──
 let cntDown = 10;
@@ -320,10 +384,7 @@ setInterval(() => {
   document.getElementById('timerFillPV').style.width  = pct;
 }, 1000);
 
-// ════════════════════════════════════════════
-// SITE 1 — IPX800 V4 (XML direct)
-// Lit analog1 = éolienne
-// ════════════════════════════════════════════
+// ── Fetch Site 1 — IPX800 (XML direct) ──
 async function fetchIPX() {
   try {
     const res  = await fetch(IPX_URL, { cache: 'no-store' });
@@ -331,26 +392,16 @@ async function fetchIPX() {
     const xml  = new DOMParser().parseFromString(txt, 'application/xml');
     const node = xml.querySelector('analog1');
     return node ? (parseFloat(node.textContent) || 0) : 0;
-  } catch (e) {
-    console.warn("IPX800 inaccessible :", e);
-    return null;
-  }
+  } catch (e) { return null; }
 }
 
-// ════════════════════════════════════════════
-// SITE 2 — Eco-Device via Flask
-// Flask tourne sur : python app.py (port 5000)
-// Lit c1day_kwh = production PV du jour en kWh
-// ════════════════════════════════════════════
+// ── Fetch Site 2 — Eco-Device (via Flask) ──
 async function fetchEcoDevice() {
   try {
     const res  = await fetch(ECO_URL, { cache: 'no-store' });
     const data = await res.json();
     return parseFloat(data.c1day_kwh) || 0;
-  } catch (e) {
-    console.warn("Eco-Device (Flask) inaccessible :", e);
-    return null;
-  }
+  } catch (e) { return null; }
 }
 
 // ── Mise à jour dashboard ──
@@ -377,15 +428,27 @@ async function updateDashboard() {
     document.getElementById('timePV').innerText = "❌ Flask hors ligne — lance python app.py";
   }
 
-  // CO₂
-  const total = (valEol || 0) + (valPV || 0);
-  document.getElementById('co2Value').innerText   = (total * 0.75).toFixed(3) + " kg";
+  // ── Calculs CO₂ ──
+  const totalKwh    = (valEol || 0) + (valPV || 0);
+  const co2Instant  = totalKwh * CO2_COEFF;           // CO2 de ce relevé
+  journalCO2.push(co2Instant);
+  totalCO2Jour      = sum(journalCO2);                 // cumul CO2 journée
+  const moyenneCO2  = avg(journalCO2);                 // moyenne CO2 / relevé
+
+  // Affichage CO₂
+  document.getElementById('co2Value').innerText  = co2Instant.toFixed(3) + " kg";
   document.getElementById('globalTime').innerText = "Calculé à " + t;
+  document.getElementById('co2Inst').innerText   = co2Instant.toFixed(3);
+  document.getElementById('co2Moy').innerText    = moyenneCO2.toFixed(3);
+  document.getElementById('co2Total').innerText  = totalCO2Jour.toFixed(3);
 
   // Stats
-  document.getElementById('moyEol').innerText    = avg(journalEol).toFixed(3);
-  document.getElementById('moyPV').innerText     = avg(journalPV).toFixed(3);
-  document.getElementById('nbReleves').innerText = journalEol.length;
+  const totalKwhCumul = sum(journalEol) + sum(journalPV);
+  document.getElementById('moyEol').innerText     = avg(journalEol).toFixed(3);
+  document.getElementById('moyPV').innerText      = avg(journalPV).toFixed(3);
+  document.getElementById('moyco2Stat').innerText = moyenneCO2.toFixed(3);
+  document.getElementById('nbReleves').innerText  = journalEol.length;
+  document.getElementById('totalKwh').innerText   = totalKwhCumul.toFixed(3);
 
   // Graphique
   chart.data.labels.push(t);
@@ -436,19 +499,26 @@ async function chargerHistorique() {
     const res  = await fetch(API_BDD + "?action=liste&limite=20");
     const rows = await res.json();
     if (!rows.length) return;
-    document.getElementById('histBody').innerHTML = rows.map(r => `
-      <tr>
-        <td style="opacity:.35">#${r.id}</td>
-        <td class="c-eol">${parseFloat(r.analog1 || 0).toFixed(3)} kWh</td>
-        <td class="c-pv">${parseFloat(r.analog2  || 0).toFixed(3)} kWh</td>
-        <td class="c-moy">${parseFloat(r.moyenne  || 0).toFixed(3)} kWh</td>
-        <td class="c-date">${r.date_mesure}</td>
-        <td class="c-date">${r.heure_mesure}</td>
-      </tr>
-    `).join('');
+    document.getElementById('histBody').innerHTML = rows.map(r => {
+      const eol   = parseFloat(r.analog1 || 0);
+      const pv    = parseFloat(r.analog2  || 0);
+      const total = eol + pv;
+      const co2   = (total * CO2_COEFF).toFixed(3);
+      return `
+        <tr>
+          <td style="opacity:.35">#${r.id}</td>
+          <td class="c-eol">${eol.toFixed(3)} kWh</td>
+          <td class="c-pv">${pv.toFixed(3)} kWh</td>
+          <td class="c-moy">${total.toFixed(3)} kWh</td>
+          <td class="c-co2">${co2} kg</td>
+          <td class="c-date">${r.date_mesure}</td>
+          <td class="c-date">${r.heure_mesure}</td>
+        </tr>
+      `;
+    }).join('');
   } catch (e) {
     document.getElementById('histBody').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;color:#ff6b6b;padding:24px;">Impossible de charger l\'historique</td></tr>';
+      '<tr><td colspan="7" style="text-align:center;color:#ff6b6b;padding:24px;">Impossible de charger l\'historique</td></tr>';
   }
 }
 
