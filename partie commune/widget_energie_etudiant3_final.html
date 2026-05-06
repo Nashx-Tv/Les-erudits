@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Widget Énergie Multisites — InfoProd</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Source Sans 3', sans-serif;
+}
+
+.widget {
+  width: 220px;
+  background: #16A34A;
+  color: white;
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.w-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #FDE047;
+  border-bottom: 2px solid rgba(253,224,71,0.35);
+  padding-bottom: 5px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.w-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #fca5a5;
+  flex-shrink: 0;
+  animation: blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.w-section {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: .8;
+  margin-top: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.w-source { font-weight: 700; font-size: 8px; color: rgba(255,255,255,0.5); }
+
+.w-big {
+  font-family: 'Oswald', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+}
+.w-big .unit { font-size: 12px; font-weight: 400; opacity: .7; margin-left: 2px; }
+
+.w-gauge { background: rgba(0,0,0,.2); border-radius: 3px; height: 4px; overflow: hidden; margin: 3px 0 4px; }
+.w-gauge-fill { height: 4px; border-radius: 3px; transition: width 1s ease; width: 0%; }
+.fill-eol { background: #A7F3D0; }
+.fill-pv  { background: #FDE68A; }
+
+.w-sep { border: none; border-top: 1px solid rgba(255,255,255,.2); margin: 2px 0; }
+
+.w-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; opacity: .9; }
+.w-row .val { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; }
+
+/* Bloc CO2 principal */
+.w-co2 {
+  background: rgba(0,0,0,.18);
+  border-radius: 6px; padding: 6px 8px;
+  text-align: center; margin-top: 2px;
+}
+.w-co2-label { font-size: 9px; text-transform: uppercase; opacity: .7; margin-bottom: 2px; }
+.w-co2-val   { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 700; color: #A7F3D0; }
+
+/* Mini grille CO2 */
+.w-co2-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 4px;
+}
+.w-co2-mini {
+  background: rgba(0,0,0,.15);
+  border-radius: 4px;
+  padding: 4px 6px;
+  text-align: center;
+}
+.w-co2-mini .lbl { font-size: 7px; text-transform: uppercase; opacity: .6; letter-spacing: .8px; }
+.w-co2-mini .val { font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 700; color: #A7F3D0; }
+
+.w-update { font-size: 8px; opacity: .5; text-align: center; margin-top: auto; padding-top: 5px; }
+</style>
+</head>
+<body>
+
+<div class="widget">
+  <div class="w-title">
+    <span class="w-dot" id="wDot"></span>
+    Énergie Renouvelable
+  </div>
+
+  <div class="w-section">🌬 Éolienne <span class="w-source">IPX800</span></div>
+  <div class="w-big" id="wEol">—<span class="unit">kWh</span></div>
+  <div class="w-gauge"><div class="w-gauge-fill fill-eol" id="wEolG"></div></div>
+
+  <hr class="w-sep">
+
+  <div class="w-section">☀ Photovoltaïque <span class="w-source">ECO-DEVICE</span></div>
+  <div class="w-big" id="wPV">—<span class="unit">kWh</span></div>
+  <div class="w-gauge"><div class="w-gauge-fill fill-pv" id="wPVG"></div></div>
+
+  <hr class="w-sep">
+
+  <div class="w-row"><span>⚡ Total Global</span><span class="val" id="wTotal">—</span></div>
+  <div class="w-row"><span>📊 Relevés</span><span class="val" id="wReleves">0</span></div>
+
+  <hr class="w-sep">
+
+  <!-- CO2 instantané -->
+  <div class="w-co2">
+    <div class="w-co2-label">🌱 CO₂ Économisé (instantané)</div>
+    <div>
+      <span class="w-co2-val" id="wCO2">—</span>
+      <span style="font-size:11px;opacity:.7"> kg</span>
+    </div>
+  </div>
+
+  <!-- CO2 moyenne + total journée -->
+  <div class="w-co2-grid">
+    <div class="w-co2-mini">
+      <div class="lbl">📊 Moy. jour</div>
+      <div class="val" id="wCO2Moy">—</div>
+      <div style="font-size:7px;opacity:.5">kg/relevé</div>
+    </div>
+    <div class="w-co2-mini">
+      <div class="lbl">📅 Total jour</div>
+      <div class="val" id="wCO2Total">—</div>
+      <div style="font-size:7px;opacity:.5">kg aujourd'hui</div>
+    </div>
+  </div>
+
+  <div class="w-update" id="wUpdate">Initialisation...</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+const IPX_URL    = "http://192.168.0.131/status.xml";   // Site 1 — IPX800 V4
+const ECO_URL    = "http://127.0.0.1:5000/api/ecodevice"; // Site 2 — Eco-Device via Flask
+const REFRESH_MS = 2000;
+const MAX_REF    = 1000;   // valeur max jauge (kWh)
+const CO2_COEFF  = 0.75;   // kg CO2 par kWh
+// ════════════════════════════════════════════
+
+let nbReleves   = 0;
+const journalCO2 = [];  // stocke chaque valeur CO2 pour la moyenne
+
+// ── Jauge ──
+function updateGauge(id, val) {
+  const percent = Math.min((val / MAX_REF) * 100, 100);
+  document.getElementById(id).style.width = percent + '%';
+}
+
+// ── Helpers ──
+function avg(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+function sum(arr) {
+  return arr.reduce((a, b) => a + b, 0);
+}
+
+// ── Fetch Site 1 — IPX800 (XML direct) ──
+async function getIPXData() {
+  try {
+    const res  = await fetch(IPX_URL, { cache: "no-store" });
+    const text = await res.text();
+    const xml  = new DOMParser().parseFromString(text, "application/xml");
+    return parseFloat(xml.querySelector("analog1").textContent) || 0;
+  } catch (e) { return null; }
+}
+
+// ── Fetch Site 2 — Eco-Device (via Flask) ──
+async function getEcoData() {
+  try {
+    const res  = await fetch(ECO_URL, { cache: "no-store" });
+    const data = await res.json();
+    return parseFloat(data.c1day_kwh) || 0;
+  } catch (e) { return null; }
+}
+
+// ── Rafraîchissement ──
+async function refresh() {
+  const valEol = await getIPXData();
+  const valPV  = await getEcoData();
+
+  const statusDot   = document.getElementById('wDot');
+  const updateLabel = document.getElementById('wUpdate');
+  const now         = new Date().toLocaleTimeString('fr-FR');
+
+  // Statut
+  if (valEol === null && valPV === null) {
+    statusDot.style.background = '#fca5a5';
+    updateLabel.textContent    = "Erreur connexion — " + now;
+    return;
+  }
+  statusDot.style.background = '#A7F3D0';
+  nbReleves++;
+
+  // Éolienne
+  if (valEol !== null) {
+    document.getElementById('wEol').innerHTML = `${valEol.toFixed(2)}<span class="unit">kWh</span>`;
+    updateGauge('wEolG', valEol);
+  }
+
+  // PV
+  if (valPV !== null) {
+    document.getElementById('wPV').innerHTML = `${valPV.toFixed(2)}<span class="unit">kWh</span>`;
+    updateGauge('wPVG', valPV);
+  }
+
+  // Total
+  const total = (valEol || 0) + (valPV || 0);
+  document.getElementById('wTotal').textContent  = total.toFixed(2) + ' kWh';
+  document.getElementById('wReleves').textContent = nbReleves;
+
+  // ── CO₂ ──
+  const co2Instant = total * CO2_COEFF;
+  journalCO2.push(co2Instant);
+
+  const co2Moy   = avg(journalCO2);
+  const co2Total = sum(journalCO2);
+
+  document.getElementById('wCO2').textContent      = co2Instant.toFixed(2);
+  document.getElementById('wCO2Moy').textContent   = co2Moy.toFixed(2);
+  document.getElementById('wCO2Total').textContent = co2Total.toFixed(2);
+
+  updateLabel.textContent = "Mis à jour : " + now;
+}
+
+setInterval(refresh, REFRESH_MS);
+refresh();
+</script>
+
+</body>
+</html>
