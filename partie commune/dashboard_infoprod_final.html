@@ -4,174 +4,226 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>InfoProd — Dashboard Énergie</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
   color: white;
   min-height: 100vh;
 }
 
+/* ── HEADER ── */
 header {
-  padding: 24px 20px 20px;
+  padding: 20px 24px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
+  justify-content: space-between;
   flex-wrap: wrap;
+  gap: 12px;
   border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: rgba(0,0,0,0.15);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 10;
 }
-.header-title { font-size: 22px; font-weight: 600; }
+.header-left  { display: flex; align-items: center; gap: 12px; }
+.header-title { font-size: 18px; font-weight: 600; letter-spacing: .3px; }
+.header-sub   { font-size: 11px; opacity: .4; letter-spacing: 1px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+#clock { font-size: 20px; font-weight: 700; color: #00c6ff; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
 
 #statusBadge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; background: rgba(255,255,255,0.1);
-  border-radius: 20px; padding: 5px 14px;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; background: rgba(255,255,255,0.07);
+  border-radius: 20px; padding: 6px 14px;
   border: 1px solid rgba(255,255,255,0.1);
 }
 #statusDot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: #aaa; transition: background .3s;
+  background: #aaa; flex-shrink: 0;
+  transition: background .3s;
 }
-#statusDot.ok      { background: #4cd964; box-shadow: 0 0 6px #4cd964; }
-#statusDot.err     { background: #ff3b30; box-shadow: 0 0 6px #ff3b30; }
-#statusDot.loading { background: #f9d423; box-shadow: 0 0 6px #f9d423; animation: pulse 1.2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+#statusDot.ok      { background: #4cd964; box-shadow: 0 0 8px #4cd964; }
+#statusDot.err     { background: #ff3b30; box-shadow: 0 0 8px #ff3b30; }
+#statusDot.loading { background: #f9d423; box-shadow: 0 0 8px #f9d423; animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
+/* ── GRID ── */
 .container {
-  padding: 18px;
+  padding: 20px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  gap: 16px;
 }
+.full { grid-column: 1 / -1; }
 
+/* ── CARD ── */
 .card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(12px);
-  border-radius: 18px;
-  padding: 24px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  padding: 22px 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
   display: flex; flex-direction: column;
+  transition: box-shadow .2s;
 }
-.bdd-card { grid-column: 1 / -1; }
+.card:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08); }
 
+/* ── SOURCE TAG ── */
 .source-tag {
-  display: inline-block; font-size: 10px; border-radius: 20px;
-  padding: 3px 11px; margin-bottom: 12px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; border-radius: 20px;
+  padding: 4px 12px; margin-bottom: 14px;
   letter-spacing: 1.5px; font-weight: 600; width: fit-content;
 }
-.tag-ipx { background: rgba(0,198,255,0.15); color: #00c6ff; border: 1px solid rgba(0,198,255,0.25); }
-.tag-eco { background: rgba(249,212,35,0.15); color: #f9d423;  border: 1px solid rgba(249,212,35,0.25); }
-.tag-co2 { background: rgba(76,217,100,0.15); color: #4cd964;  border: 1px solid rgba(76,217,100,0.25); }
+.tag-ipx { background: rgba(0,198,255,0.12); color: #00c6ff; border: 1px solid rgba(0,198,255,0.25); }
+.tag-eco { background: rgba(249,212,35,0.12); color: #f9d423;  border: 1px solid rgba(249,212,35,0.25); }
+.tag-co2 { background: rgba(76,217,100,0.12); color: #4cd964;  border: 1px solid rgba(76,217,100,0.25); }
 
-.card h2   { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
-.value     { font-size: 38px; font-weight: 700; letter-spacing: -1px; margin: 4px 0 6px; }
-.co2-val   { font-size: 38px; font-weight: 700; color: #4cd964; letter-spacing: -1px; margin: 4px 0 6px; }
-.timestamp { font-size: 12px; opacity: .5; margin-top: 4px; }
+/* ── VALEUR PRINCIPALE ── */
+.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 10px; opacity: .85; }
+.value {
+  font-size: 44px; font-weight: 700; letter-spacing: -1.5px;
+  margin: 6px 0 8px; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.co2-val {
+  font-size: 44px; font-weight: 700; color: #4cd964;
+  letter-spacing: -1.5px; margin: 6px 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+.timestamp { font-size: 11px; opacity: .4; }
 
-.timer-wrap { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
-.timer-lbl  { font-size: 11px; opacity: .45; white-space: nowrap; }
-.timer-val  { font-size: 13px; font-weight: 600; color: #00c6ff; min-width: 22px; }
-.timer-bg   { flex: 1; background: rgba(255,255,255,0.07); border-radius: 4px; height: 4px; overflow: hidden; }
-.timer-fill { height: 4px; border-radius: 4px; width: 100%; transition: width 1s linear; }
+/* ── TIMER ── */
+.timer-wrap {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.timer-lbl { font-size: 10px; opacity: .4; white-space: nowrap; letter-spacing: .5px; }
+.timer-val { font-size: 12px; font-weight: 700; color: #00c6ff; min-width: 24px; }
+.timer-bg  { flex: 1; background: rgba(255,255,255,0.07); border-radius: 4px; height: 3px; overflow: hidden; }
+.timer-fill { height: 3px; border-radius: 4px; width: 100%; transition: width 1s linear; }
 #timerFillEol { background: linear-gradient(90deg, #00c6ff, #4cd964); }
 #timerFillPV  { background: linear-gradient(90deg, #f9d423, #4cd964); }
 
-.moy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-.moy-box  {
-  background: rgba(255,255,255,0.06);
-  border-radius: 12px; padding: 12px 14px;
-  border: 1px solid rgba(255,255,255,0.07);
-}
-.moy-box .lbl     { font-size: 10px; opacity: .5; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 5px; }
-.moy-box .moy-val { font-size: 22px; font-weight: 700; }
-.moy-box .moy-val.eol   { color: #00c6ff; }
-.moy-box .moy-val.pv    { color: #f9d423; }
-.moy-box .moy-val.total { color: white; }
-.moy-box .moy-val.co2   { color: #4cd964; }
-.moy-box .moy-sub { font-size: 10px; opacity: .4; margin-top: 2px; }
-
-/* Card CO2 étendue sur toute la largeur */
+/* ── CO2 GRID ── */
 .co2-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 16px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px; margin-top: 18px; padding-top: 18px;
   border-top: 1px solid rgba(255,255,255,0.06);
 }
 .co2-box {
-  background: rgba(76,217,100,0.08);
-  border-radius: 12px; padding: 12px 14px;
-  border: 1px solid rgba(76,217,100,0.15);
-  text-align: center;
+  background: rgba(76,217,100,0.07);
+  border-radius: 14px; padding: 14px;
+  border: 1px solid rgba(76,217,100,0.15); text-align: center;
 }
-.co2-box .lbl    { font-size: 10px; opacity: .6; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
-.co2-box .val    { font-size: 22px; font-weight: 700; color: #4cd964; }
-.co2-box .sub    { font-size: 10px; opacity: .4; margin-top: 3px; }
+.co2-box .lbl { font-size: 10px; opacity: .6; letter-spacing: 1px; margin-bottom: 7px; }
+.co2-box .val { font-size: 24px; font-weight: 700; color: #4cd964; font-variant-numeric: tabular-nums; }
+.co2-box .sub { font-size: 10px; opacity: .35; margin-top: 3px; }
 
-canvas { width: 100% !important; height: 280px !important; }
+/* ── MOY GRID ── */
+.moy-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-top: 4px;
+}
+.moy-box {
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px; padding: 14px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.moy-box .lbl     { font-size: 10px; opacity: .45; letter-spacing: 1px; margin-bottom: 5px; }
+.moy-box .moy-val { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.moy-box .moy-val.eol   { color: #00c6ff; }
+.moy-box .moy-val.pv    { color: #f9d423; }
+.moy-box .moy-val.total { color: #e0e0e0; }
+.moy-box .moy-val.co2   { color: #4cd964; }
+.moy-box .moy-sub { font-size: 10px; opacity: .35; margin-top: 3px; }
 
+/* ── CHART ── */
+canvas { width: 100% !important; height: 260px !important; }
+.legend { display: flex; gap: 16px; font-size: 11px; opacity: .6; }
+.legend span { display: flex; align-items: center; gap: 5px; }
+.leg-dot { width: 10px; height: 3px; border-radius: 2px; }
+
+/* ── HISTORIQUE ── */
 #saveNotif { display: none; padding: 8px 14px; border-radius: 10px; font-size: 12px; margin-bottom: 10px; }
-#saveNotif.ok  { background: rgba(76,217,100,.12); border: 1px solid rgba(76,217,100,.3); color: #4cd964; }
-#saveNotif.err { background: rgba(255,59,48,.12);  border: 1px solid rgba(255,59,48,.3);  color: #ff6b6b; }
+#saveNotif.ok  { background: rgba(76,217,100,.1); border: 1px solid rgba(76,217,100,.3); color: #4cd964; }
+#saveNotif.err { background: rgba(255,59,48,.1);  border: 1px solid rgba(255,59,48,.3);  color: #ff6b6b; }
 
-.hist-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
+.hist-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 14px; }
 .hist-table th {
-  text-align: left; padding: 9px 12px;
-  background: rgba(255,255,255,0.07);
+  text-align: left; padding: 10px 12px;
+  background: rgba(255,255,255,0.05);
   border-bottom: 1px solid rgba(255,255,255,0.08);
-  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: .6;
+  font-size: 10px; letter-spacing: 1.5px; opacity: .55; font-weight: 600;
 }
-.hist-table td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
-.hist-table tr:hover td { background: rgba(255,255,255,0.03); }
+.hist-table td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.hist-table tr:last-child td { border-bottom: none; }
+.hist-table tr:hover td { background: rgba(255,255,255,0.025); }
 .c-eol  { color: #00c6ff; font-weight: 600; }
 .c-pv   { color: #f9d423; font-weight: 600; }
 .c-moy  { color: #a78bfa; font-weight: 600; }
 .c-co2  { color: #4cd964; font-weight: 600; }
-.c-date { opacity: .45; font-size: 11px; }
+.c-date { opacity: .4; font-size: 11px; }
 
 .btn-refresh {
-  padding: 6px 14px; border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.08);
+  padding: 7px 16px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.07);
   color: white; font-family: 'Poppins', sans-serif;
-  font-size: 12px; cursor: pointer; transition: background .2s;
+  font-size: 11px; cursor: pointer;
+  transition: background .2s, border-color .2s;
+  font-weight: 500; letter-spacing: .5px;
 }
-.btn-refresh:hover { background: rgba(255,255,255,0.14); }
+.btn-refresh:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
 
-@media(max-width: 1024px) {
-  .container { grid-template-columns: 1fr; }
-  .bdd-card  { grid-column: 1; }
-  .co2-grid  { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .container { grid-template-columns: 1fr; padding: 14px; gap: 14px; }
+  .full { grid-column: 1; }
+  .co2-grid { grid-template-columns: 1fr 1fr; }
+  .value, .co2-val { font-size: 36px; }
+}
+@media (max-width: 480px) {
+  .co2-grid { grid-template-columns: 1fr; }
+  .moy-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
+<!-- ── HEADER ── -->
 <header>
-  <span class="header-title">🌍 Dashboard Énergie — InfoProd</span>
-  <span id="statusBadge">
-    <span id="statusDot" class="loading"></span>
-    <span id="statusText">Initialisation…</span>
-  </span>
+  <div class="header-left">
+    <div>
+      <div class="header-title">🌍 Dashboard Énergie — InfoProd</div>
+      <div class="header-sub">LGT JOSEPH GAILLARD · BTS CIEL IR 2026</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="clock">--:--:--</div>
+    <span id="statusBadge">
+      <span id="statusDot" class="loading"></span>
+      <span id="statusText">Initialisation…</span>
+    </span>
+  </div>
 </header>
 
 <div class="container">
 
   <!-- ── Site 1 — Éolienne (IPX800) ── -->
   <div class="card">
-    <div class="source-tag tag-ipx">SITE 1 · IPX800 V4 · 192.168.0.131</div>
-    <h2>🌬 Éolienne</h2>
+    <div class="source-tag tag-ipx">📡 SITE 1 · IPX800 V4 · 192.168.0.131</div>
+    <h2>🌬️ Éolienne</h2>
     <div class="value" id="eolienneValue">— kWh</div>
     <div class="timestamp" id="timeEolienne">En attente…</div>
     <div class="timer-wrap">
-      <span class="timer-lbl">Prochain relevé</span>
+      <span class="timer-lbl">PROCHAIN RELEVÉ</span>
       <span class="timer-val" id="cntEol">10s</span>
       <div class="timer-bg"><div class="timer-fill" id="timerFillEol"></div></div>
     </div>
@@ -179,57 +231,55 @@ canvas { width: 100% !important; height: 280px !important; }
 
   <!-- ── Site 2 — PV (Eco-Device via Flask) ── -->
   <div class="card">
-    <div class="source-tag tag-eco">SITE 2 · ECO-DEVICE · via Flask :5000</div>
+    <div class="source-tag tag-eco">🔌 SITE 2 · ECO-DEVICE · Flask :5000</div>
     <h2>☀️ Photovoltaïque</h2>
     <div class="value" id="pvValue">— kWh</div>
     <div class="timestamp" id="timePV">En attente…</div>
     <div class="timer-wrap">
-      <span class="timer-lbl">Prochain relevé</span>
+      <span class="timer-lbl">PROCHAIN RELEVÉ</span>
       <span class="timer-val" id="cntPV">10s</span>
       <div class="timer-bg"><div class="timer-fill" id="timerFillPV"></div></div>
     </div>
   </div>
 
   <!-- ── CO₂ ── -->
-  <div class="card bdd-card">
+  <div class="card full">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div>
-        <div class="source-tag tag-co2">CO₂ GLOBAL</div>
-        <h2>🌱 CO₂ Économisé</h2>
+        <div class="source-tag tag-co2">🌱 CO₂ GLOBAL</div>
+        <h2>CO₂ Économisé</h2>
       </div>
       <div style="text-align:right;">
         <div class="co2-val" id="co2Value">— kg</div>
         <div class="timestamp" id="globalTime">Calculé à partir des deux sites</div>
       </div>
     </div>
-
-    <!-- 3 indicateurs CO2 -->
     <div class="co2-grid">
       <div class="co2-box">
-        <div class="lbl">🌿 CO₂ instantané</div>
+        <div class="lbl">CO₂ INSTANTANÉ</div>
         <div class="val" id="co2Inst">—</div>
         <div class="sub">kg ce relevé</div>
       </div>
       <div class="co2-box">
-        <div class="lbl">📊 Moyenne CO₂ / relevé</div>
+        <div class="lbl">MOYENNE / RELEVÉ</div>
         <div class="val" id="co2Moy">—</div>
-        <div class="sub">kg / relevé (journée)</div>
+        <div class="sub">kg / relevé</div>
       </div>
       <div class="co2-box">
-        <div class="lbl">📅 Total CO₂ journée</div>
+        <div class="lbl">TOTAL JOURNÉE</div>
         <div class="val" id="co2Total">—</div>
         <div class="sub">kg économisés aujourd'hui</div>
       </div>
     </div>
   </div>
 
-  <!-- ── Graphique + Stats ── -->
+  <!-- ── Graphique ── -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
       <h2 style="margin:0;">📈 Comparatif temps réel</h2>
-      <div style="display:flex;gap:12px;font-size:11px;opacity:.7;align-items:center;">
-        <span><span style="display:inline-block;width:10px;height:3px;background:#00c6ff;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Éolienne</span>
-        <span><span style="display:inline-block;width:10px;height:3px;background:#f9d423;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>PV</span>
+      <div class="legend">
+        <span><span class="leg-dot" style="background:#00c6ff"></span>Éolienne</span>
+        <span><span class="leg-dot" style="background:#f9d423"></span>PV</span>
       </div>
     </div>
     <canvas id="energyChart"></canvas>
@@ -237,35 +287,35 @@ canvas { width: 100% !important; height: 280px !important; }
 
   <!-- ── Stats ── -->
   <div class="card">
-    <h2 style="margin-bottom:14px;">📊 Statistiques</h2>
+    <h2 style="margin-bottom:16px;">📊 Statistiques</h2>
     <div class="moy-grid">
       <div class="moy-box">
-        <div class="lbl">Moy. Éolienne</div>
+        <div class="lbl">MOY. ÉOLIENNE</div>
         <div class="moy-val eol" id="moyEol">—</div>
         <div class="moy-sub">kWh / relevé</div>
       </div>
       <div class="moy-box">
-        <div class="lbl">Moy. PV</div>
+        <div class="lbl">MOY. PV</div>
         <div class="moy-val pv" id="moyPV">—</div>
         <div class="moy-sub">kWh / relevé</div>
       </div>
       <div class="moy-box">
-        <div class="lbl">Moy. CO₂</div>
+        <div class="lbl">MOY. CO₂</div>
         <div class="moy-val co2" id="moyco2Stat">—</div>
         <div class="moy-sub">kg / relevé</div>
       </div>
       <div class="moy-box">
-        <div class="lbl">Relevés du jour</div>
+        <div class="lbl">RELEVÉS DU JOUR</div>
         <div class="moy-val total" id="nbReleves">0</div>
         <div class="moy-sub">enregistrements</div>
       </div>
       <div class="moy-box">
-        <div class="lbl">Total kWh jour</div>
+        <div class="lbl">TOTAL KWH JOUR</div>
         <div class="moy-val total" id="totalKwh">—</div>
         <div class="moy-sub">kWh cumulés</div>
       </div>
       <div class="moy-box">
-        <div class="lbl">Intervalle</div>
+        <div class="lbl">INTERVALLE</div>
         <div class="moy-val total">10s</div>
         <div class="moy-sub">fréquence</div>
       </div>
@@ -273,13 +323,13 @@ canvas { width: 100% !important; height: 280px !important; }
   </div>
 
   <!-- ── Historique BDD ── -->
-  <div class="card bdd-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+  <div class="card full">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
       <h2>🗄️ Historique des enregistrements BDD</h2>
       <button class="btn-refresh" onclick="chargerHistorique()">🔄 Actualiser</button>
     </div>
     <div id="saveNotif"></div>
-    <div style="font-size:11px;opacity:.4;margin-top:6px;">20 derniers enregistrements</div>
+    <div style="font-size:10px;opacity:.35;margin-bottom:4px;letter-spacing:.5px;">20 DERNIERS ENREGISTREMENTS</div>
     <div style="overflow-x:auto;">
       <table class="hist-table">
         <thead>
@@ -294,7 +344,7 @@ canvas { width: 100% !important; height: 280px !important; }
           </tr>
         </thead>
         <tbody id="histBody">
-          <tr><td colspan="7" style="text-align:center;opacity:.35;padding:28px;">En attente des données…</td></tr>
+          <tr><td colspan="7" style="text-align:center;opacity:.3;padding:28px;font-size:11px;">En attente des données…</td></tr>
         </tbody>
       </table>
     </div>
@@ -303,53 +353,46 @@ canvas { width: 100% !important; height: 280px !important; }
 </div>
 
 <script>
-// ════════════════════════════════════════════
-// CONFIG
-// ════════════════════════════════════════════
+// ════════════════════════════════════════════════
+//  CONFIG — modifier ici si besoin
+// ════════════════════════════════════════════════
 const IPX_URL    = "http://192.168.0.131/status.xml";
-const ECO_URL    = "http://127.0.0.1:5000/api/ecodevice";
+const ECO_URL    = "http://192.168.0.21:5000/api/ecodevice";
 const API_BDD    = "http://192.168.1.53/api_analog.php";
-const REFRESH_MS = 10000;
-const SAVE_MS    = 10 * 60 * 1000;
+const REFRESH_MS = 10000;          // 10 secondes
+const SAVE_MS    = 10 * 60 * 1000; // 10 minutes
 const MAX_GRAPH  = 60;
-const STEP_Y     = 10;
-const CO2_COEFF  = 0.75; // kg CO2 par kWh
-// ════════════════════════════════════════════
+const CO2_COEFF  = 0.75;           // kg CO₂ par kWh
+// ════════════════════════════════════════════════
 
 const journalEol = [];
 const journalPV  = [];
-const journalCO2 = []; // ← journal CO2 pour la moyenne journalière
+const journalCO2 = [];
 let   totalCO2Jour = 0;
 
-// ── Graphique ──
+// ── Horloge ──
+setInterval(() => {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('fr-FR');
+}, 1000);
+
+// ── Chart.js ──
 const chart = new Chart(
   document.getElementById('energyChart').getContext('2d'), {
     type: 'line',
     data: {
       labels: [],
       datasets: [
-        {
-          label: 'Éolienne',
-          data: [],
-          borderColor: '#00c6ff',
-          backgroundColor: 'rgba(0,198,255,0.09)',
-          fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2
-        },
-        {
-          label: 'PV',
-          data: [],
-          borderColor: '#f9d423',
-          backgroundColor: 'rgba(249,212,35,0.07)',
-          fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2
-        }
+        { label: 'Éolienne', data: [], borderColor: '#00c6ff', backgroundColor: 'rgba(0,198,255,0.08)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2 },
+        { label: 'PV',       data: [], borderColor: '#f9d423', backgroundColor: 'rgba(249,212,35,0.07)', fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { display: false } },
-        y: { beginAtZero: true, ticks: { color: 'rgba(255,255,255,0.3)', stepSize: STEP_Y }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        x: { ticks: { color: 'rgba(255,255,255,0.25)', font: { size: 9, family: 'Poppins' } }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: 'rgba(255,255,255,0.25)', font: { size: 9, family: 'Poppins' } }, grid: { color: 'rgba(255,255,255,0.04)' } }
       }
     }
   }
@@ -361,19 +404,12 @@ function setStatus(state, txt) {
   document.getElementById('statusText').innerText = txt;
 }
 function nowStr() {
-  return new Date().toLocaleTimeString('fr-FR', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit'
-  });
+  return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
-function avg(arr) {
-  if (!arr.length) return 0;
-  return arr.reduce((a, b) => a + b, 0) / arr.length;
-}
-function sum(arr) {
-  return arr.reduce((a, b) => a + b, 0);
-}
+function avg(arr) { return arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : 0; }
+function sum(arr) { return arr.reduce((a,b) => a+b, 0); }
 
-// ── Countdown 10s ──
+// ── Countdown ──
 let cntDown = 10;
 setInterval(() => {
   cntDown--; if (cntDown < 0) cntDown = 10;
@@ -384,7 +420,7 @@ setInterval(() => {
   document.getElementById('timerFillPV').style.width  = pct;
 }, 1000);
 
-// ── Fetch Site 1 — IPX800 (XML direct) ──
+// ── Fetch IPX800 (XML direct) ──
 async function fetchIPX() {
   try {
     const res  = await fetch(IPX_URL, { cache: 'no-store' });
@@ -392,16 +428,16 @@ async function fetchIPX() {
     const xml  = new DOMParser().parseFromString(txt, 'application/xml');
     const node = xml.querySelector('analog1');
     return node ? (parseFloat(node.textContent) || 0) : 0;
-  } catch (e) { return null; }
+  } catch(e) { return null; }
 }
 
-// ── Fetch Site 2 — Eco-Device (via Flask) ──
+// ── Fetch Eco-Device (via Flask) ──
 async function fetchEcoDevice() {
   try {
     const res  = await fetch(ECO_URL, { cache: 'no-store' });
     const data = await res.json();
     return parseFloat(data.c1day_kwh) || 0;
-  } catch (e) { return null; }
+  } catch(e) { return null; }
 }
 
 // ── Mise à jour dashboard ──
@@ -410,34 +446,33 @@ async function updateDashboard() {
   const valEol = await fetchIPX();
   const valPV  = await fetchEcoDevice();
 
-  // Site 1 — Éolienne
+  // Site 1
   if (valEol !== null) {
-    document.getElementById('eolienneValue').innerText = valEol.toFixed(3) + " kWh";
-    document.getElementById('timeEolienne').innerText  = "Mis à jour : " + t;
+    document.getElementById('eolienneValue').innerText = valEol.toFixed(3) + ' kWh';
+    document.getElementById('timeEolienne').innerText  = 'Mis à jour : ' + t;
     journalEol.push(valEol);
   } else {
-    document.getElementById('timeEolienne').innerText = "❌ IPX800 hors ligne";
+    document.getElementById('timeEolienne').innerText = '❌ IPX800 hors ligne';
   }
 
-  // Site 2 — PV
+  // Site 2
   if (valPV !== null) {
-    document.getElementById('pvValue').innerText = valPV.toFixed(3) + " kWh";
-    document.getElementById('timePV').innerText  = "Mis à jour : " + t;
+    document.getElementById('pvValue').innerText = valPV.toFixed(3) + ' kWh';
+    document.getElementById('timePV').innerText  = 'Mis à jour : ' + t;
     journalPV.push(valPV);
   } else {
-    document.getElementById('timePV').innerText = "❌ Flask hors ligne — lance python app.py";
+    document.getElementById('timePV').innerText = '❌ Flask hors ligne — lance python app.py';
   }
 
-  // ── Calculs CO₂ ──
-  const totalKwh    = (valEol || 0) + (valPV || 0);
-  const co2Instant  = totalKwh * CO2_COEFF;           // CO2 de ce relevé
+  // CO₂
+  const totalKwh   = (valEol || 0) + (valPV || 0);
+  const co2Instant = totalKwh * CO2_COEFF;
   journalCO2.push(co2Instant);
-  totalCO2Jour      = sum(journalCO2);                 // cumul CO2 journée
-  const moyenneCO2  = avg(journalCO2);                 // moyenne CO2 / relevé
+  totalCO2Jour = sum(journalCO2);
+  const moyenneCO2 = avg(journalCO2);
 
-  // Affichage CO₂
-  document.getElementById('co2Value').innerText  = co2Instant.toFixed(3) + " kg";
-  document.getElementById('globalTime').innerText = "Calculé à " + t;
+  document.getElementById('co2Value').innerText  = co2Instant.toFixed(3) + ' kg';
+  document.getElementById('globalTime').innerText = 'Calculé à ' + t;
   document.getElementById('co2Inst').innerText   = co2Instant.toFixed(3);
   document.getElementById('co2Moy').innerText    = moyenneCO2.toFixed(3);
   document.getElementById('co2Total').innerText  = totalCO2Jour.toFixed(3);
@@ -450,7 +485,7 @@ async function updateDashboard() {
   document.getElementById('nbReleves').innerText  = journalEol.length;
   document.getElementById('totalKwh').innerText   = totalKwhCumul.toFixed(3);
 
-  // Graphique
+  // Graph
   chart.data.labels.push(t);
   chart.data.datasets[0].data.push(valEol ?? 0);
   chart.data.datasets[1].data.push(valPV  ?? 0);
@@ -460,43 +495,37 @@ async function updateDashboard() {
   }
   chart.update('none');
 
-  // Badge statut
-  if (valEol !== null && valPV !== null) {
-    setStatus('ok', `Connecté · ${t}`);
-  } else if (valEol === null && valPV === null) {
-    setStatus('err', `Les deux sources hors ligne · ${t}`);
-  } else {
-    setStatus('loading', `Données partielles · ${t}`);
-  }
+  // Badge
+  if (valEol !== null && valPV !== null)           setStatus('ok',      'Connecté · ' + t);
+  else if (valEol === null && valPV === null)       setStatus('err',     'Hors ligne · ' + t);
+  else                                             setStatus('loading',  'Données partielles · ' + t);
 }
 
 // ── Sauvegarde BDD (toutes les 10 min) ──
 setInterval(async () => {
   const eol = parseFloat(document.getElementById('eolienneValue').innerText) || 0;
   const pv  = parseFloat(document.getElementById('pvValue').innerText)       || 0;
-  const moy = parseFloat(avg(journalEol).toFixed(3));
+  const moy = avg(journalEol).toFixed(3);
   try {
-    const res  = await fetch(API_BDD + "?action=enregistrer", {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ analog1: eol, analog2: pv, moyenne: moy })
+    const res  = await fetch(API_BDD + '?action=enregistrer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ analog1: eol, analog2: pv, moyenne: moy })
     });
     const data = await res.json();
     if (data.succes) {
-      const notif = document.getElementById('saveNotif');
-      notif.className     = 'ok';
-      notif.innerText     = `✅ Enregistré à ${data.heure}`;
-      notif.style.display = 'block';
-      setTimeout(() => notif.style.display = 'none', 5000);
+      const n = document.getElementById('saveNotif');
+      n.className = 'ok'; n.innerText = '✅ Enregistré à ' + data.heure;
+      n.style.display = 'block';
+      setTimeout(() => n.style.display = 'none', 5000);
       chargerHistorique();
     }
-  } catch (e) { console.error("Erreur BDD :", e); }
+  } catch(e) { console.error('Erreur BDD :', e); }
 }, SAVE_MS);
 
 // ── Historique BDD ──
 async function chargerHistorique() {
   try {
-    const res  = await fetch(API_BDD + "?action=liste&limite=20");
+    const res  = await fetch(API_BDD + '?action=liste&limite=20');
     const rows = await res.json();
     if (!rows.length) return;
     document.getElementById('histBody').innerHTML = rows.map(r => {
@@ -506,19 +535,18 @@ async function chargerHistorique() {
       const co2   = (total * CO2_COEFF).toFixed(3);
       return `
         <tr>
-          <td style="opacity:.35">#${r.id}</td>
+          <td style="opacity:.3">#${r.id}</td>
           <td class="c-eol">${eol.toFixed(3)} kWh</td>
           <td class="c-pv">${pv.toFixed(3)} kWh</td>
           <td class="c-moy">${total.toFixed(3)} kWh</td>
           <td class="c-co2">${co2} kg</td>
           <td class="c-date">${r.date_mesure}</td>
           <td class="c-date">${r.heure_mesure}</td>
-        </tr>
-      `;
+        </tr>`;
     }).join('');
-  } catch (e) {
+  } catch(e) {
     document.getElementById('histBody').innerHTML =
-      '<tr><td colspan="7" style="text-align:center;color:#ff6b6b;padding:24px;">Impossible de charger l\'historique</td></tr>';
+      '<tr><td colspan="7" style="text-align:center;color:#ff6b6b;padding:24px;font-size:11px;">Impossible de charger l\'historique</td></tr>';
   }
 }
 
