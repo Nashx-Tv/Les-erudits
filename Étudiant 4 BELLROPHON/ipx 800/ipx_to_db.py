@@ -1,20 +1,17 @@
 import requests
 import xml.etree.ElementTree as ET
-import pymysql
 import time
 from datetime import datetime
 
 IPX_URL = "http://192.168.0.131/status.xml"
+ECO_URL = "http://192.168.0.21:5000/api/ecodevice"
 
-DB_CONFIG = {
-    "host":     "192.168.0.11",
-    "port":     3306,
-    "user":     "admin",
-    "password": "pi",
-    "db":       "auth_system",
-}
+# ── API Railway (remplace la connexion BDD locale) ──
+API_URL = "https://site-web-production-77ef.up.railway.app/api_analog.php"
 
-INTERVALLE_SECONDES = 10
+INTERVALLE_SECONDES = 1800
+
+journal_eol = []
 
 def lire_analog1():
     try:
@@ -27,48 +24,53 @@ def lire_analog1():
     except (AttributeError, ValueError) as e:
         raise RuntimeError("Erreur de lecture analog1 : {}".format(e))
 
-def inserer_mesure(analog1, date_mesure, heure_mesure):
-    conn = pymysql.connect(**DB_CONFIG)
-    cursor = conn.cursor()
+def lire_analog2():
     try:
-        cursor.execute(
-            "SELECT AVG(analog1), COUNT(*) FROM historique_energie WHERE date_mesure = %s",
-            (date_mesure,)
-        )
-        row = cursor.fetchone()
-        nb = row[1] or 0
-        moyenne = ((row[0] or 0) * nb + analog1) / (nb + 1)
+        r = requests.get(ECO_URL, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        return float(data.get("c1day_kwh", 0))
+    except Exception as e:
+        print("  ⚠ Eco-Device injoignable : {}".format(e))
+        return 0
 
-        cursor.execute(
-            "INSERT INTO historique_energie (analog1, moyenne_jour, date_mesure, heure_mesure) VALUES (%s, %s, %s, %s)",
-            (analog1, moyenne, date_mesure, heure_mesure)
+def envoyer_mesure(analog1, analog2, moyenne):
+    try:
+        r = requests.post(
+            API_URL + "?action=enregistrer",
+            json={"analog1": analog1, "analog2": analog2, "moyenne": moyenne},
+            timeout=10
         )
-        conn.commit()
-        print("OK | analog1={} kWh | moyenne_jour={:.4f} | {} {}".format(analog1, moyenne, date_mesure, heure_mesure))
-    except pymysql.Error as e:
-        conn.rollback()
-        raise RuntimeError("Erreur base de donnees : {}".format(e))
-    finally:
-        cursor.close()
-        conn.close()
+        data = r.json()
+        if data.get("succes"):
+            print("OK | eol={} kWh | pv={} kWh | moyenne={:.4f} | {} {}".format(
+                analog1, analog2, moyenne, data.get("date"), data.get("heure")))
+        else:
+            print("ERREUR API : {}".format(data.get("error", "inconnue")))
+    except Exception as e:
+        raise RuntimeError("Impossible d'envoyer a Railway : {}".format(e))
 
 print("Demarrage - mesure toutes les {} secondes...".format(INTERVALLE_SECONDES))
+print("Envoi vers : {}".format(API_URL))
 
 while True:
     try:
-        now = datetime.now()
-        date_mesure  = now.strftime("%Y-%m-%d")
-        heure_mesure = now.strftime("%H:%M:%S")
-
-        print("Lecture IPX800...")
+        print("\nLecture IPX800...")
         analog1 = lire_analog1()
         print("   analog1 = {} kWh".format(analog1))
 
-        print("Insertion en base de donnees...")
-        inserer_mesure(analog1, date_mesure, heure_mesure)
+        print("Lecture Eco-Device...")
+        analog2 = lire_analog2()
+        print("   analog2 = {} kWh".format(analog2))
+
+        journal_eol.append(analog1)
+        moyenne = sum(journal_eol) / len(journal_eol)
+
+        print("Envoi vers Railway...")
+        envoyer_mesure(analog1, analog2, round(moyenne, 4))
 
     except RuntimeError as e:
         print("ERREUR : {}".format(e))
 
-    print("Prochaine mesure dans {} secondes...\n".format(INTERVALLE_SECONDES))
+    print("Prochaine mesure dans {} secondes...".format(INTERVALLE_SECONDES))
     time.sleep(INTERVALLE_SECONDES)
